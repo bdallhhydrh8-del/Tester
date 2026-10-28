@@ -49,4 +49,41 @@ class GrantService
             DB::table('project_accesses')->insertOrIgnore($rows);
         }
     }
+
+    /**
+     * FR-I7: projects added to a link later are granted to every tester who
+     * already joined it. Existing rows are never changed, so invitation_id
+     * keeps pointing at the first link that granted the access.
+     */
+    public function grantProjectsToJoinedTesters(Invitation $invitation, iterable $projectIds): void
+    {
+        $projectIds = collect($projectIds)->values();
+
+        if ($projectIds->isEmpty()) {
+            return;
+        }
+
+        $now = now();
+
+        DB::table('invitation_testers')
+            ->where('invitation_id', $invitation->id)
+            ->orderBy('tester_id')
+            ->chunk(500, function ($joined) use ($invitation, $projectIds, $now) {
+                $rows = [];
+
+                foreach ($joined as $row) {
+                    foreach ($projectIds as $projectId) {
+                        $rows[] = [
+                            'tester_id' => $row->tester_id,
+                            'project_id' => $projectId,
+                            'invitation_id' => $invitation->id,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+                }
+
+                DB::table('project_accesses')->insertOrIgnore($rows);
+            });
+    }
 }

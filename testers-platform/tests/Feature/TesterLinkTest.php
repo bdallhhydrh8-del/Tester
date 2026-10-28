@@ -127,7 +127,7 @@ class TesterLinkTest extends TestCase
         $this->postApi("/api/links/{$link->token}/register", ['name' => 'Ali', 'phone' => '777123456'])->assertCreated();
 
         $this->actingAs(User::where('phone', '+967777123456')->first(), 'sanctum')
-            ->getJson('/api/admin/ping')
+            ->getJson('/api/testers')
             ->assertStatus(403);
     }
 }

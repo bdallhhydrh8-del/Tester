@@ -41,8 +41,8 @@ $tester = User::create([
 ]);
 
         $this->actingAs($admin, 'sanctum')->getJson('/api/me')->assertOk();
-        $this->actingAs($admin, 'sanctum')->getJson('/api/admin/ping')->assertOk();
-        $this->actingAs($tester, 'sanctum')->getJson('/api/admin/ping')->assertStatus(403);
+        $this->actingAs($admin, 'sanctum')->getJson('/api/testers')->assertOk();
+        $this->actingAs($tester, 'sanctum')->getJson('/api/testers')->assertStatus(403);
     }
 
     public function test_login_is_rate_limited(): void
