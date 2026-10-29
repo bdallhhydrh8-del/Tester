@@ -12,14 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ai_summaries', function (Blueprint $t) {
-        $t->id();
-        $t->foreignId('project_id')->unique()->constrained();
-        $t->text('summary')->nullable();
-        $t->unsignedInteger('notes_count')->default(0);
-        $t->string('status')->default('pending'); // pending | ready | failed
-        $t->timestamp('generated_at')->nullable();
-        $t->timestamps();
-    });
+            $t->id();
+            // add the foreign key to projects once Dev 2's table is merged
+            $t->unsignedBigInteger('project_id')->unique();
+            $t->text('summary')->nullable();
+            $t->unsignedInteger('notes_count')->default(0);
+            $t->string('status')->default('pending'); // pending | ready | failed
+            $t->timestamp('generated_at')->nullable();
+            $t->timestamps();
+        });
     }
 
     /**
