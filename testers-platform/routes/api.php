@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\LinkController;
 use App\Http\Controllers\Api\TesterAuthController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\CardController;
+use App\Http\Controllers\Api\SettingController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/admin/login', [AuthController::class, 'adminLogin']);
@@ -33,6 +34,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/projects/{project}/cards/order', [CardController::class, 'reorder']);
         Route::patch('/cards/{card}', [CardController::class, 'update']);
         Route::delete('/cards/{card}', [CardController::class, 'destroy']);
+
+        Route::get('/settings/default-cards', [SettingController::class, 'showDefaultCards']);
+        Route::put('/settings/default-cards', [SettingController::class, 'updateDefaultCards']);
     });
 
     // Temporary route to test the role middleware. Delete it later.
