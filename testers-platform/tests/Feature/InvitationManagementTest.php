@@ -16,12 +16,14 @@ class InvitationManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    private array $frontend = ['Origin' => 'http://localhost:3000'];
+
     protected function setUp(): void
     {
         parent::setUp();
 
         // Stand-ins, only while Dev 2's and Dev 3's real migrations are not merged yet.
-        // They copy the columns in the team document. Delete these two blocks later.
+        // Delete these two blocks once the real tables exist.
         if (! Schema::hasTable('projects')) {
             Schema::create('projects', function (Blueprint $table) {
                 $table->id();
@@ -29,7 +31,7 @@ class InvitationManagementTest extends TestCase
                 $table->string('type');
                 $table->string('link')->nullable();
                 $table->text('note')->nullable();
-                $table->string('status')->default('disabled');
+                $table->string('status')->default('live');
                 $table->unsignedBigInteger('created_by')->nullable();
                 $table->timestamps();
             });
@@ -107,15 +109,12 @@ class InvitationManagementTest extends TestCase
         $p2 = $this->project('App two');
 
         $response = $this->actingAs($this->admin(), 'sanctum')
-            ->postJson('/api/invitations', [
-                'name' => 'Week 1',
-                'project_ids' => [$p1, $p2],
-                'expires_at' => now()->addDays(7)->toIso8601String(),
-            ])
+            ->postJson('/api/invitations', ['name' => 'Week 1', 'project_ids' => [$p1, $p2]])
             ->assertCreated()
-            ->assertJsonPath('data.state', 'active')
+            ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.projects_count', 2)
-            ->assertJsonPath('data.joined_count', 0);
+            ->assertJsonPath('data.joined_count', 0)
+            ->assertJsonMissingPath('data.expires_at');
 
         $token = $response->json('data.token');
         $this->assertSame(40, strlen($token));
@@ -126,7 +125,7 @@ class InvitationManagementTest extends TestCase
         $this->assertStringContainsString(rawurlencode($expectedUrl), $response->json('data.whatsapp_url'));
 
         $this->assertDatabaseCount('invitation_project', 2);
-        $this->assertDatabaseHas('invitations', ['token' => $token, 'created_by' => $this->admin()->id]);
+        $this->assertDatabaseHas('invitations', ['token' => $token, 'status' => 'active', 'created_by' => $this->admin()->id]);
     }
 
     public function test_create_validates_input(): void
@@ -146,19 +145,14 @@ class InvitationManagementTest extends TestCase
             ->postJson('/api/invitations', ['name' => 'X', 'project_ids' => [999999]])
             ->assertStatus(422)->assertJsonValidationErrors('project_ids.0');
 
-        $this->actingAs($admin, 'sanctum')
-            ->postJson('/api/invitations', ['name' => 'X', 'project_ids' => [$project], 'expires_at' => now()->subDay()->toIso8601String()])
-            ->assertStatus(422)->assertJsonValidationErrors('expires_at');
-
         $this->assertDatabaseCount('invitations', 0);
     }
 
-    public function test_list_shows_state_and_counts_and_filters_by_state(): void
+    public function test_list_shows_status_and_counts_and_filters_by_status(): void
     {
         $project = $this->project();
         $active = $this->link([$project], ['name' => 'Active link']);
-        $this->link([$project], ['name' => 'Stopped link', 'stopped_at' => now()]);
-        $this->link([$project], ['name' => 'Expired link', 'expires_at' => now()->subDay()]);
+        $this->link([$project], ['name' => 'Disabled link', 'status' => 'disabled']);
 
         DB::table('invitation_testers')->insert([
             'invitation_id' => $active->id, 'tester_id' => $this->tester(1)->id, 'joined_at' => now(),
@@ -166,19 +160,17 @@ class InvitationManagementTest extends TestCase
 
         $admin = $this->admin();
 
-        $this->actingAs($admin, 'sanctum')->getJson('/api/invitations')->assertOk()->assertJsonCount(3, 'data');
+        $this->actingAs($admin, 'sanctum')->getJson('/api/invitations')->assertOk()->assertJsonCount(2, 'data');
 
-        $this->actingAs($admin, 'sanctum')->getJson('/api/invitations?state=active')
+        $this->actingAs($admin, 'sanctum')->getJson('/api/invitations?status=active')
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.name', 'Active link')
+            ->assertJsonPath('data.0.status', 'active')
             ->assertJsonPath('data.0.joined_count', 1)
             ->assertJsonPath('data.0.projects_count', 1);
 
-        $this->actingAs($admin, 'sanctum')->getJson('/api/invitations?state=stopped')
-            ->assertJsonCount(1, 'data')->assertJsonPath('data.0.state', 'stopped');
-
-        $this->actingAs($admin, 'sanctum')->getJson('/api/invitations?state=expired')
-            ->assertJsonCount(1, 'data')->assertJsonPath('data.0.state', 'expired');
+        $this->actingAs($admin, 'sanctum')->getJson('/api/invitations?status=disabled')
+            ->assertJsonCount(1, 'data')->assertJsonPath('data.0.status', 'disabled');
     }
 
     public function test_show_lists_projects_and_testers_without_private_data(): void
@@ -193,6 +185,7 @@ class InvitationManagementTest extends TestCase
 
         $this->actingAs($this->admin(), 'sanctum')->getJson("/api/invitations/{$link->id}")
             ->assertOk()
+            ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.projects.0.name', 'Shop app')
             ->assertJsonPath('data.testers.0.tester_number', 7)
             ->assertJsonMissingPath('data.testers.0.phone')
@@ -201,39 +194,41 @@ class InvitationManagementTest extends TestCase
         $this->actingAs($this->admin(), 'sanctum')->getJson('/api/invitations/999999')->assertNotFound();
     }
 
-    public function test_update_name_and_expiry(): void
+    public function test_update_changes_the_name_only(): void
     {
-        $link = $this->link([$this->project()], ['expires_at' => now()->addDays(3)]);
+        $link = $this->link([$this->project()]);
 
         $this->actingAs($this->admin(), 'sanctum')
-            ->patchJson("/api/invitations/{$link->id}", ['name' => 'Renamed', 'expires_at' => now()->addDays(10)->toIso8601String()])
+            ->patchJson("/api/invitations/{$link->id}", ['name' => 'Renamed'])
             ->assertOk()->assertJsonPath('data.name', 'Renamed');
-
-        // Sending null removes the expiry date
-        $this->actingAs($this->admin(), 'sanctum')
-            ->patchJson("/api/invitations/{$link->id}", ['expires_at' => null])
-            ->assertOk()->assertJsonPath('data.expires_at', null);
 
         $this->actingAs($this->admin(), 'sanctum')
             ->patchJson("/api/invitations/{$link->id}", ['name' => ''])
             ->assertStatus(422);
     }
 
-    public function test_stop_blocks_registration_and_can_be_repeated(): void
+    public function test_disable_blocks_registration_and_activate_restores_it(): void
     {
         $link = $this->link([$this->project()]);
+        $admin = $this->admin();
 
-        $this->actingAs($this->admin(), 'sanctum')->postJson("/api/invitations/{$link->id}/stop")
-            ->assertOk()->assertJsonPath('data.state', 'stopped');
+        $this->actingAs($admin, 'sanctum')->postJson("/api/invitations/{$link->id}/disable")
+            ->assertOk()->assertJsonPath('data.status', 'disabled');
 
-        $stoppedAt = $link->fresh()->stopped_at;
+        // Repeating it changes nothing
+        $this->actingAs($admin, 'sanctum')->postJson("/api/invitations/{$link->id}/disable")
+            ->assertOk()->assertJsonPath('data.status', 'disabled');
 
-        $this->actingAs($this->admin(), 'sanctum')->postJson("/api/invitations/{$link->id}/stop")->assertOk();
-        $this->assertEquals($stoppedAt, $link->fresh()->stopped_at);
-
-        $this->withHeaders(['Origin' => 'http://localhost:3000'])
+        $this->withHeaders($this->frontend)
             ->postJson("/api/links/{$link->token}/register", ['name' => 'Ali', 'phone' => '777123456'])
-            ->assertStatus(409)->assertJsonPath('code', 'link_stopped');
+            ->assertStatus(409)->assertJsonPath('code', 'link_disabled');
+
+        $this->actingAs($admin, 'sanctum')->postJson("/api/invitations/{$link->id}/activate")
+            ->assertOk()->assertJsonPath('data.status', 'active');
+
+        $this->withHeaders($this->frontend)
+            ->postJson("/api/links/{$link->token}/register", ['name' => 'Ali', 'phone' => '777123456'])
+            ->assertCreated();
     }
 
     public function test_added_projects_reach_testers_who_already_joined(): void
@@ -281,5 +276,18 @@ class InvitationManagementTest extends TestCase
             'tester_id' => $tester->id, 'project_id' => $p2, 'invitation_id' => $link2->id,
         ]);
         $this->assertSame(1, DB::table('project_accesses')->where('project_id', $p2)->count());
+    }
+
+    public function test_projects_cannot_be_added_to_a_disabled_link(): void
+    {
+        $p1 = $this->project('First');
+        $p2 = $this->project('Second');
+        $link = $this->link([$p1], ['status' => 'disabled']);
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson("/api/invitations/{$link->id}/projects", ['project_ids' => [$p2]])
+            ->assertStatus(409)->assertJsonPath('code', 'link_disabled');
+
+        $this->assertDatabaseCount('invitation_project', 1);
     }
 }
