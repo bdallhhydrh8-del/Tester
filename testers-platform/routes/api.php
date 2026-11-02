@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LinkController;
 use App\Http\Controllers\Api\TesterAuthController;
 use App\Http\Controllers\Api\ProjectController;
