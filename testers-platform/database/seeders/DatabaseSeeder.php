@@ -2,24 +2,23 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Always: the SuperAdmin and the tester number counter
+        $this->call(SuperAdminSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Demo data: local machines only, never on the real server
+        if (app()->environment('local')) {
+            $this->call(DemoUsersSeeder::class);   // Dev 1: admins, testers, invitation links
+
+            // Each dev adds their own seeder here, in this order:
+            // $this->call(DemoProjectsSeeder::class);       // Dev 2: projects, cards, settings
+            // $this->call(DemoParticipationSeeder::class);  // Dev 3: accesses and responses
+            // $this->call(DemoIssuesSeeder::class);         // Dev 4: issues
+        }
     }
 }
