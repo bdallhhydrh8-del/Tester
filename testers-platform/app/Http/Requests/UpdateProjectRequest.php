@@ -19,7 +19,7 @@ class UpdateProjectRequest extends FormRequest
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'type' => ['sometimes', 'required', Rule::enum(ProjectType::class)],
-            'link' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'link' => ['sometimes', 'required', 'url:http,https', 'max:2048'],
             'note' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
     }

@@ -19,7 +19,7 @@ class StoreProjectRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::enum(ProjectType::class)],
-            'link' => ['nullable', 'url', 'max:2048'],
+            'link' => ['required', 'url:http,https', 'max:2048'],
             'note' => ['nullable', 'string', 'max:2000'],
         ];
     }

@@ -37,13 +37,13 @@ class ProjectController extends Controller
         return ProjectResource::collection($projects)->additional(['message' => 'ok']);
     }
 
-    // POST /projects: starts as disabled and copies the default cards 
+    // POST /projects: starts as live and copies the default cards 
     public function store(StoreProjectRequest $request): JsonResponse
     {
         $project = DB::transaction(function () use ($request) {
             $project = Project::create([
                 ...$request->validated(),
-                'status' => ProjectStatus::Disabled,
+                'status' => ProjectStatus::Live,
                 'created_by' => $request->user()->id,
             ]);
 

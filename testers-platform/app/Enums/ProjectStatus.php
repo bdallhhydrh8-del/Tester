@@ -16,6 +16,7 @@ enum ProjectStatus: string
         return match ($this) {
             self::Disabled => $next === self::Live,
             self::Live => $next === self::Done,
+            self::Live => in_array($next, [self::Disabled, self::Done], true),
             self::Done => $next === self::Live,
         };
     }
