@@ -29,4 +29,9 @@ class Project extends Model
     {
         return $this->status === ProjectStatus::Live;
     }
+
+    public function cards()
+    {
+        return $this->hasMany(Card::class)->orderBy('position');
+    }
 }

@@ -1,9 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LinkController;
 use App\Http\Controllers\Api\TesterAuthController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\TesterController;
+use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\CardController;
+use App\Http\Controllers\Api\SettingController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/admin/login', [AuthController::class, 'adminLogin']);
@@ -38,3 +44,43 @@ Route::middleware(['auth:sanctum', 'role:tester'])
                 Route::delete('{id}', [UploadController::class, 'destroy'])->whereNumber('id');
             });
     });
+     // Any admin (admin or SuperAdmin)
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/testers', [TesterController::class, 'index']);
+        Route::get('/testers/{id}', [TesterController::class, 'show'])->whereNumber('id');
+        Route::patch('/testers/{id}', [TesterController::class, 'update'])->whereNumber('id');
+
+        Route::get('/invitations', [InvitationController::class, 'index']);
+        Route::post('/invitations', [InvitationController::class, 'store']);
+        Route::get('/invitations/{id}', [InvitationController::class, 'show'])->whereNumber('id');
+        Route::patch('/invitations/{id}', [InvitationController::class, 'update'])->whereNumber('id');
+        Route::post('/invitations/{id}/stop', [InvitationController::class, 'stop'])->whereNumber('id');
+        Route::post('/invitations/{id}/projects', [InvitationController::class, 'addProjects'])->whereNumber('id');
+
+        Route::get('/projects', [ProjectController::class, 'index']);
+        Route::post('/projects', [ProjectController::class, 'store']);
+        Route::get('/projects/{project}', [ProjectController::class, 'show']);
+        Route::patch('/projects/{project}', [ProjectController::class, 'update']);
+        Route::post('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
+        
+        Route::get('/projects/{project}/cards', [CardController::class, 'index']);
+        Route::post('/projects/{project}/cards', [CardController::class, 'store']);
+        Route::put('/projects/{project}/cards/order', [CardController::class, 'reorder']);
+        Route::patch('/cards/{card}', [CardController::class, 'update']);
+        Route::delete('/cards/{card}', [CardController::class, 'destroy']);
+
+        Route::get('/settings/default-cards', [SettingController::class, 'showDefaultCards']);
+        Route::put('/settings/default-cards', [SettingController::class, 'updateDefaultCards']);
+    });
+
+     // SuperAdmin only
+    Route::middleware('role:super_admin')->group(function () {
+        Route::get('/admins', [AdminController::class, 'index']);
+        Route::post('/admins', [AdminController::class, 'store']);
+        Route::get('/admins/{id}', [AdminController::class, 'show'])->whereNumber('id');
+        Route::patch('/admins/{id}', [AdminController::class, 'update'])->whereNumber('id');
+        Route::post('/admins/{id}/deactivate', [AdminController::class, 'deactivate'])->whereNumber('id');
+        Route::post('/admins/{id}/activate', [AdminController::class, 'activate'])->whereNumber('id');
+        Route::delete('/admins/{id}', [AdminController::class, 'destroy'])->whereNumber('id');
+    });
+
