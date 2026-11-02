@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LinkController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\TesterAuthController;
 use App\Http\Controllers\Api\TesterController;
 use App\Http\Controllers\Api\ProjectController;
@@ -27,6 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
      // Any admin (admin or SuperAdmin)
     Route::middleware('role:admin')->group(function () {
+        Route::get('/profile', [ProfileController::class, 'show']);
+        Route::patch('/profile', [ProfileController::class, 'update']);
+
         Route::get('/testers', [TesterController::class, 'index']);
         Route::get('/testers/{id}', [TesterController::class, 'show'])->whereNumber('id');
         Route::patch('/testers/{id}', [TesterController::class, 'update'])->whereNumber('id');
@@ -35,7 +39,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/invitations', [InvitationController::class, 'store']);
         Route::get('/invitations/{id}', [InvitationController::class, 'show'])->whereNumber('id');
         Route::patch('/invitations/{id}', [InvitationController::class, 'update'])->whereNumber('id');
-        Route::post('/invitations/{id}/stop', [InvitationController::class, 'stop'])->whereNumber('id');
+        Route::post('/invitations/{id}/disable', [InvitationController::class, 'disable'])->whereNumber('id');
+        Route::post('/invitations/{id}/activate', [InvitationController::class, 'activate'])->whereNumber('id');
         Route::post('/invitations/{id}/projects', [InvitationController::class, 'addProjects'])->whereNumber('id');
 
         Route::get('/projects', [ProjectController::class, 'index']);

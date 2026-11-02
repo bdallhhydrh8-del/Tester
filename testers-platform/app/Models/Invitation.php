@@ -8,28 +8,17 @@ use Illuminate\Support\Facades\DB;
 
 class Invitation extends Model
 {
-    protected $fillable = ['name', 'token', 'expires_at', 'stopped_at', 'created_by'];
+    public const ACTIVE = 'active';
+    public const DISABLED = 'disabled';
 
-    protected function casts(): array
+    protected $fillable = ['name', 'token', 'status', 'created_by'];
+
+    // Same default as the database, so a new object never has a null status
+    protected $attributes = ['status' => self::ACTIVE];
+
+    public function isActive(): bool
     {
-        return [
-            'expires_at' => 'datetime',
-            'stopped_at' => 'datetime',
-        ];
-    }
-
-    /** active, stopped or expired */
-    public function state(): string
-    {
-        if ($this->stopped_at !== null) {
-            return 'stopped';
-        }
-
-        if ($this->expires_at !== null && $this->expires_at->isPast()) {
-            return 'expired';
-        }
-
-        return 'active';
+        return $this->status === self::ACTIVE;
     }
 
     public function projectIds(): Collection

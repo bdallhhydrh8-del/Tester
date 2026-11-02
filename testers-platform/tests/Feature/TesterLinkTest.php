@@ -33,16 +33,27 @@ class TesterLinkTest extends TestCase
         return $this->withHeaders($this->frontend)->postJson($url, $data);
     }
 
-    public function test_link_states(): void
+        public function test_link_states(): void
     {
         $active = $this->makeLink();
-        $stopped = $this->makeLink(['stopped_at' => now()]);
-        $expired = $this->makeLink(['expires_at' => now()->subDay()]);
+        $disabled = $this->makeLink(['status' => 'disabled']);
 
         $this->getJson("/api/links/{$active->token}")->assertOk()->assertJsonPath('data.state', 'active');
-        $this->getJson("/api/links/{$stopped->token}")->assertOk()->assertJsonPath('data.state', 'stopped');
-        $this->getJson("/api/links/{$expired->token}")->assertOk()->assertJsonPath('data.state', 'expired');
+        $this->getJson("/api/links/{$disabled->token}")->assertOk()->assertJsonPath('data.state', 'disabled');
         $this->getJson('/api/links/does-not-exist')->assertOk()->assertJsonPath('data.state', 'unknown');
+    }
+
+    public function test_disabled_links_block_register_and_login(): void
+    {
+        $disabled = $this->makeLink(['status' => 'disabled']);
+
+        $this->postApi("/api/links/{$disabled->token}/register", ['name' => 'Ali', 'phone' => '777123456'])
+            ->assertStatus(409)->assertJsonPath('code', 'link_disabled');
+
+        $this->postApi("/api/links/{$disabled->token}/login", ['phone' => '777123456'])
+            ->assertStatus(409)->assertJsonPath('code', 'link_disabled');
+
+        $this->postApi('/api/links/nope/register', ['name' => 'Ali', 'phone' => '777123456'])->assertNotFound();
     }
 
     public function test_register_creates_a_numbered_tester_and_logs_in(): void
