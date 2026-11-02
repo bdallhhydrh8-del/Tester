@@ -28,7 +28,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/projects', [ProjectController::class, 'store']);
         Route::get('/projects/{project}', [ProjectController::class, 'show']);
         Route::patch('/projects/{project}', [ProjectController::class, 'update']);
-
+        Route::post('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
+        
         Route::get('/projects/{project}/cards', [CardController::class, 'index']);
         Route::post('/projects/{project}/cards', [CardController::class, 'store']);
         Route::put('/projects/{project}/cards/order', [CardController::class, 'reorder']);
