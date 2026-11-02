@@ -11,3 +11,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new CleanupFilesJob)->dailyAt('03:00');
+Schedule::command('backup:run')->dailyAt('02:00')->withoutOverlapping();
+Schedule::command('disk:check')->hourly();
