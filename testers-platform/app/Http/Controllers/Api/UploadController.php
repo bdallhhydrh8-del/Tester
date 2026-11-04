@@ -9,6 +9,8 @@ use App\Services\ChunkedUploadService;
 use App\Support\UploadSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Contracts\UploadService;
+use App\Http\Requests\Tester\UploadImageRequest;
 
 /**
  * Chunked (resumable) uploads for testers.
@@ -21,8 +23,10 @@ class UploadController extends Controller
     public function __construct(
         private ChunkedUploadService $chunked,
         private UploadSettings $settings,
-    ) {
-    }
+         private UploadService $images,
+        
+        
+    ) {}
 
     /** POST /tester/uploads/init */
     public function init(InitUploadRequest $request): JsonResponse
@@ -87,5 +91,13 @@ class UploadController extends Controller
     private function respond(mixed $data, ?string $message = null, int $status = 200): JsonResponse
     {
         return response()->json(['data' => $data, 'message' => $message], $status);
+    }
+
+    /** POST /tester/uploads : one image in one request. */
+    public function store(UploadImageRequest $request): JsonResponse
+    {
+        $file = $this->images->store($request->user(), $request->file('file'));
+
+        return $this->respond(['file_id' => $file->id], null, 201);
     }
 }

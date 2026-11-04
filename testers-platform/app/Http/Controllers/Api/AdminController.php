@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class AdminController extends Controller
 {
@@ -38,7 +39,7 @@ class AdminController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'username' => 'required|string|alpha_dash|max:50|unique:users,username',
-            'password' => 'required|string|min:8|max:100',
+            'password' => array_merge(['required'], $this->passwordRules()),
         ]);
 
         $admin = User::create([
@@ -60,7 +61,7 @@ class AdminController extends Controller
             'name' => 'sometimes|required|string|max:100',
             'username' => ['sometimes', 'required', 'string', 'alpha_dash', 'max:50',
                 Rule::unique('users', 'username')->ignore($admin->id)],
-            'password' => 'sometimes|required|string|min:8|max:100',
+            'password' => array_merge(['sometimes', 'required'], $this->passwordRules()),
         ]);
 
         $admin->update($data);
@@ -94,9 +95,15 @@ class AdminController extends Controller
     {
         $admin = $this->findAdmin($id);
         $this->endSessions($admin);
-        $admin->delete(); // soft delete: created_by on projects and links stays valid
+        $admin->delete(); // soft delete: projects and links created by this admin stay
 
         return response()->json(['message' => 'Admin deleted.']);
+    }
+
+    /** FR-A11: at least 8 characters with letters and numbers, and a matching password_confirmation. */
+    private function passwordRules(): array
+    {
+        return ['string', 'confirmed', 'max:100', Password::min(8)->letters()->numbers()];
     }
 
     /**

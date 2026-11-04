@@ -4,6 +4,13 @@ return [
     // Where the React app lives. Share links are built as {frontend_url}/join/{token}
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
 
+    // Fixed platform limits (SRS v4, FR-X3). Admins cannot change them.
+    // Dev 3 reads the upload values, Dev 4 reads the idle cap.
+    'upload_max_mb' => (int) env('UPLOAD_MAX_MB', 10),
+    'image_types' => ['image/jpeg', 'image/png', 'image/webp'],
+    'idle_cap_minutes' => (int) env('IDLE_CAP_MINUTES', 30),
+    'unattached_file_days' => 1, // FR-X4
+
     // Daily backups. backup_path must be outside the server in production.
     'backup_path' => env('BACKUP_PATH') ?: storage_path('app/backups'),
     'backup_keep_days' => (int) env('BACKUP_KEEP_DAYS', 14),

@@ -6,12 +6,16 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
  * Named StoredFile because "File" clashes with Laravel's File facade.
  */
 class StoredFile extends Model
-{
+{    
+    use HasFactory;
+    // ...
+    
     protected $table = 'files';
 
     protected $fillable = [
@@ -47,4 +51,5 @@ class StoredFile extends Model
     {
         return $query->whereNull('fileable_id');
     }
+       
 }

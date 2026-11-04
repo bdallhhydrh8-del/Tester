@@ -67,23 +67,22 @@ class DemoUsersSeeder extends Seeder
         return $testers;
     }
 
-    /** @param array<int, User> $testers */
+      /** @param array<int, User> $testers */
     private function seedInvitations(User $admin, array $testers): void
     {
         $links = [
-            ['demo-week-1', 'Demo Week 1 (active)', null, null, range(0, 9)],
-            ['demo-week-2', 'Demo Week 2 (expires in 7 days)', now()->addDays(7), null, range(7, 11)],
-            ['demo-stopped', 'Demo stopped link', null, now()->subDay(), []],
-            ['demo-expired', 'Demo expired link', now()->subDays(2), null, []],
+            ['demo-week-1', 'Demo Week 1 (active)', 'active', range(0, 9)],
+            ['demo-week-2', 'Demo Week 2 (active)', 'active', range(7, 11)],
+            ['demo-disabled', 'Demo disabled link', 'disabled', []],
         ];
 
-        foreach ($links as [$key, $name, $expiresAt, $stoppedAt, $joined]) {
+        foreach ($links as [$key, $name, $status, $joined]) {
             // Fixed, 40-character token so everyone gets the same demo URLs
             $token = substr(hash('sha256', $key), 0, 40);
 
             $invitation = Invitation::firstOrCreate(
                 ['token' => $token],
-                ['name' => $name, 'expires_at' => $expiresAt, 'stopped_at' => $stoppedAt, 'created_by' => $admin->id]
+                ['name' => $name, 'status' => $status, 'created_by' => $admin->id]
             );
 
             foreach ($joined as $testerIndex) {

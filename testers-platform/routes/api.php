@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LinkController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\TesterAuthController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\TesterController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\FileController;
+use App\Http\Controllers\Api\TesterCardController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/admin/login', [AuthController::class, 'adminLogin']);
@@ -35,6 +37,8 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'role:tester'])
     ->prefix('tester')
     ->group(function () {
+
+        // ---- Tester uploads ----
         Route::middleware('throttle:uploads')
             ->prefix('uploads')
             ->group(function () {
@@ -43,10 +47,29 @@ Route::middleware(['auth:sanctum', 'role:tester'])
                 Route::get('{id}', [UploadController::class, 'status'])->whereNumber('id');
                 Route::post('{id}/complete', [UploadController::class, 'complete'])->whereNumber('id');
                 Route::delete('{id}', [UploadController::class, 'destroy'])->whereNumber('id');
+                Route::post('/', [UploadController::class, 'store']);
+            });
+
+        // ---- Tester card routes: current-card requires project access; task and submit actions require the expected card. ----
+        Route::prefix('projects/{project}')
+            ->group(function () {
+                Route::get('current-card', [TesterCardController::class, 'currentCard'])
+                    ->middleware('tester.project');
+
+                Route::middleware('tester.project:expect-card')
+                    ->group(function () {
+                        Route::post('cards/{card}/starttask', [TesterCardController::class, 'startTask']);
+                        Route::post('cards/{card}/donetask', [TesterCardController::class, 'doneTask']);
+                        Route::post('cards/{card}/submit', [TesterCardController::class, 'submit']);
+                    });
             });
     });
+
 // Any admin (admin or SuperAdmin)
 Route::middleware('role:admin')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::patch('/profile', [ProfileController::class, 'update']);
+
     Route::get('/testers', [TesterController::class, 'index']);
     Route::get('/testers/{id}', [TesterController::class, 'show'])->whereNumber('id');
     Route::patch('/testers/{id}', [TesterController::class, 'update'])->whereNumber('id');
@@ -56,6 +79,8 @@ Route::middleware('role:admin')->group(function () {
     Route::get('/invitations/{id}', [InvitationController::class, 'show'])->whereNumber('id');
     Route::patch('/invitations/{id}', [InvitationController::class, 'update'])->whereNumber('id');
     Route::post('/invitations/{id}/stop', [InvitationController::class, 'stop'])->whereNumber('id');
+    Route::post('/invitations/{id}/disable', [InvitationController::class, 'disable'])->whereNumber('id');
+    Route::post('/invitations/{id}/activate', [InvitationController::class, 'activate'])->whereNumber('id');
     Route::post('/invitations/{id}/projects', [InvitationController::class, 'addProjects'])->whereNumber('id');
 
     Route::get('/projects', [ProjectController::class, 'index']);
@@ -88,4 +113,12 @@ Route::middleware('role:super_admin')->group(function () {
 // Admin-only endpoint for streaming private uploaded files (e.g., tester screenshots/images)
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('files/{id}', [FileController::class, 'show'])->whereNumber('id');
+});
+
+// donetask and submit the same, with :expect-card
+Route::middleware(['auth:sanctum', 'role:tester'])->prefix('tester')->group(function () {
+    Route::get('projects/{project}')->middleware('tester.project');
+    Route::post('projects/{project}/start')->middleware('tester.project');
+    Route::get('projects/{project}/current-card')->middleware('tester.project');
+    Route::post('projects/{project}/cards/{card}/starttask')->middleware('tester.project:expect-card');
 });

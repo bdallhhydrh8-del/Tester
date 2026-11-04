@@ -11,7 +11,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            \App\Contracts\UploadService::class,
+            \App\Services\ImageUploadService::class
+        );
     }
 
     /**
