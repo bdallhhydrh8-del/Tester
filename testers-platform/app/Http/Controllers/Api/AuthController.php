@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Enums\Role;
+use App\Http\Resources\AdminResource;
+use App\Http\Resources\TesterResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -51,7 +54,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $user->update(['last_login_at' => now()]);
 
-        return response()->json(['data' => $user, 'message' => 'Logged in.']);
+        return (new AdminResource($user))->additional(['message' => 'Logged in.']);
     }
 
     public function logout(Request $request)
@@ -65,6 +68,10 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json(['data' => $request->user()]);
+        $user = $request->user();
+
+        return $user->role === Role::Tester
+            ? new TesterResource($user)
+            : new AdminResource($user);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TesterResource;
 use App\Models\Invitation;
 use App\Models\User;
 use App\Services\GrantService;
@@ -110,7 +111,7 @@ class LinkController extends Controller
         $login->startSession($request, $tester);
 
         return response()->json([
-            'data' => ['user' => $tester, 'next' => $this->next($invitation)],
+            'data' => (new TesterResource($tester))->resolve(),
             'message' => 'Logged in.',
         ]);
     }
