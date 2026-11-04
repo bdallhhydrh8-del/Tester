@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use Illuminate\Support\Str;
 use App\Enums\ProjectStatus;
 use App\Http\Controllers\Concerns\RespondsWithErrors;
 use App\Http\Controllers\Controller;
@@ -59,6 +60,8 @@ class ProjectController extends Controller
                         'required',
                         'custom_questions',
                     ]),
+                    // An old default form saved before titles existed gets a title from its instructions
+                    'title' => $card['title'] ?? Str::limit($card['instructions'], 60),
                     'position' => $i + 1,
                 ]);
             }

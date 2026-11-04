@@ -18,6 +18,7 @@ class UpdateCardRequest extends FormRequest
     {
         // position is not here: order changes only through the reorder endpoint
         return [
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
             'instructions' => ['sometimes', 'required', 'string', 'max:2000'],
             'ask_success' => ['sometimes', 'boolean'],
             'ask_difficulty' => ['sometimes', 'boolean'],

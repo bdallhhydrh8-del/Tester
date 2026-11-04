@@ -12,6 +12,7 @@ class CardResource extends JsonResource
         return [
             'id' => $this->id,
             'position' => $this->position,
+            'title' => $this->title,
             'instructions' => $this->instructions,
             'ask_success' => $this->ask_success,
             'ask_difficulty' => $this->ask_difficulty,

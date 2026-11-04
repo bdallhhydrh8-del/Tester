@@ -13,6 +13,7 @@ class Card extends Model
     protected $fillable = [
         'project_id',
         'position',
+        'title',
         'instructions',
         'ask_success',
         'ask_difficulty',
@@ -47,6 +48,7 @@ class Card extends Model
     public function toSnapshot(): array
     {
         return [
+            'title' => $this->title,
             'instructions' => $this->instructions,
             'ask_success' => $this->ask_success,
             'ask_difficulty' => $this->ask_difficulty,

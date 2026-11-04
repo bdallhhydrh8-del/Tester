@@ -29,6 +29,7 @@ class Setting extends Model
             // Same fields as a card. Position comes from the order in this list.
             'default_cards' => [
                 [
+                    'title' => 'تسجيل الدخول',
                     'instructions' => 'افتح التطبيق أو الموقع وسجّل الدخول',
                     'ask_success' => true,
                     'ask_difficulty' => true,
@@ -38,6 +39,7 @@ class Setting extends Model
                     'custom_questions' => null,
                 ],
                 [
+                    'title' => 'إضافة منتج إلى السلة',
                     'instructions' => 'ابحث عن المنتج الذي تريده وأضفه إلى السلة',
                     'ask_success' => true,
                     'ask_difficulty' => true,
