@@ -21,7 +21,7 @@ class DemoUsersSeederTest extends TestCase
 
         $this->assertSame(15, User::where('role', 'tester')->count());
         $this->assertSame(2, User::where('role', 'admin')->count());
-        $this->assertSame(4, DB::table('invitations')->count());
+        $this->assertSame(3, DB::table('invitations')->count());
         $this->assertSame(15, DB::table('invitation_testers')->count());
         $this->assertSame(15, (int) DB::table('tester_counter')->value('last_number'));
         $this->assertSame(15, User::where('role', 'tester')->max('tester_number'));

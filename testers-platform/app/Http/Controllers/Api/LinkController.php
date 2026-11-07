@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TesterResource;
 use App\Models\Invitation;
 use App\Models\User;
 use App\Services\GrantService;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 
 class LinkController extends Controller
 {
-    /** GET /links/{token}: active, expired, stopped or unknown */
+    /** GET /links/{token}: active, disabled or unknown */
     public function show(string $token)
     {
         $invitation = Invitation::where('token', $token)->first();
@@ -25,10 +26,8 @@ class LinkController extends Controller
             return response()->json(['data' => ['state' => 'unknown']]);
         }
 
-        $state = $invitation->state();
-
-        if ($state !== 'active') {
-            return response()->json(['data' => ['state' => $state]]);
+        if (! $invitation->isActive()) {
+            return response()->json(['data' => ['state' => 'disabled']]);
         }
 
         $count = $invitation->projectIds()->count();
@@ -112,7 +111,7 @@ class LinkController extends Controller
         $login->startSession($request, $tester);
 
         return response()->json([
-            'data' => ['user' => $tester, 'next' => $this->next($invitation)],
+            'data' => (new TesterResource($tester))->resolve(),
             'message' => 'Logged in.',
         ]);
     }
@@ -126,11 +125,11 @@ class LinkController extends Controller
             return response()->json(['message' => 'This link does not exist.', 'code' => 'link_unknown'], 404);
         }
 
-        return match ($invitation->state()) {
-            'stopped' => response()->json(['message' => 'This link has been stopped.', 'code' => 'link_stopped'], 409),
-            'expired' => response()->json(['message' => 'This link has expired.', 'code' => 'link_expired'], 409),
-            default => $invitation,
-        };
+        if (! $invitation->isActive()) {
+            return response()->json(['message' => 'This link has been disabled.', 'code' => 'link_disabled'], 409);
+        }
+
+        return $invitation;
     }
 
     private function phoneTaken(): JsonResponse

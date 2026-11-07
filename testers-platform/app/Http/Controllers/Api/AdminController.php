@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AdminResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class AdminController extends Controller
 {
@@ -30,7 +32,8 @@ class AdminController extends Controller
 
     public function show(int $id)
     {
-        return response()->json(['data' => $this->findAdmin($id)]);
+        return new AdminResource($this->findAdmin($id));
+
     }
 
     public function store(Request $request)
@@ -38,7 +41,7 @@ class AdminController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'username' => 'required|string|alpha_dash|max:50|unique:users,username',
-            'password' => 'required|string|min:8|max:100',
+            'password' => array_merge(['required'], $this->passwordRules()),
         ]);
 
         $admin = User::create([
@@ -49,7 +52,10 @@ class AdminController extends Controller
             'password' => $data['password'],
         ]);
 
-        return response()->json(['data' => $admin, 'message' => 'Admin created.'], 201);
+        return (new AdminResource($admin))
+            ->additional(['message' => 'Admin created.'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     public function update(Request $request, int $id)
@@ -60,7 +66,7 @@ class AdminController extends Controller
             'name' => 'sometimes|required|string|max:100',
             'username' => ['sometimes', 'required', 'string', 'alpha_dash', 'max:50',
                 Rule::unique('users', 'username')->ignore($admin->id)],
-            'password' => 'sometimes|required|string|min:8|max:100',
+            'password' => array_merge(['sometimes', 'required'], $this->passwordRules()),
         ]);
 
         $admin->update($data);
@@ -70,7 +76,8 @@ class AdminController extends Controller
             $this->endSessions($admin);
         }
 
-        return response()->json(['data' => $admin->fresh(), 'message' => 'Admin updated.']);
+        return (new AdminResource($admin->fresh()))
+            ->additional(['message' => 'Admin updated.']);
     }
 
     public function deactivate(int $id)
@@ -79,7 +86,8 @@ class AdminController extends Controller
         $admin->update(['status' => 'deactivated']);
         $this->endSessions($admin);
 
-        return response()->json(['data' => $admin->fresh(), 'message' => 'Admin deactivated.']);
+        return (new AdminResource($admin->fresh()))
+            ->additional(['message' => 'Admin deactivated.']);
     }
 
     public function activate(int $id)
@@ -87,16 +95,23 @@ class AdminController extends Controller
         $admin = $this->findAdmin($id);
         $admin->update(['status' => 'active']);
 
-        return response()->json(['data' => $admin->fresh(), 'message' => 'Admin activated.']);
+        return (new AdminResource($admin->fresh()))
+            ->additional(['message' => 'Admin activated.']);
     }
 
     public function destroy(int $id)
     {
         $admin = $this->findAdmin($id);
         $this->endSessions($admin);
-        $admin->delete(); // soft delete: created_by on projects and links stays valid
+        $admin->delete(); // soft delete: projects and links created by this admin stay
 
         return response()->json(['message' => 'Admin deleted.']);
+    }
+
+    /** FR-A11: at least 8 characters with letters and numbers, and a matching password_confirmation. */
+    private function passwordRules(): array
+    {
+        return ['string', 'confirmed', 'max:100', Password::min(8)->letters()->numbers()];
     }
 
     /**

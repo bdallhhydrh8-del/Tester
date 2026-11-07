@@ -43,12 +43,15 @@ class AdminManagementTest extends TestCase
         $this->actingAs($tester, 'sanctum')->getJson('/api/admins')->assertStatus(403);
     }
 
-    public function test_super_admin_creates_and_lists_admins(): void
+     public function test_super_admin_creates_and_lists_admins(): void
     {
         $boss = $this->superAdmin();
 
         $this->actingAs($boss, 'sanctum')
-            ->postJson('/api/admins', ['name' => 'Sami', 'username' => 'sami', 'password' => 'password1'])
+            ->postJson('/api/admins', [
+                'name' => 'Sami', 'username' => 'sami',
+                'password' => 'password1', 'password_confirmation' => 'password1',
+            ])
             ->assertCreated()
             ->assertJsonPath('data.role', 'admin')
             ->assertJsonMissingPath('data.password');
@@ -66,21 +69,51 @@ class AdminManagementTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
-    public function test_create_validates_input_and_unique_username(): void
+   public function test_create_validates_input_and_unique_username(): void
     {
         $boss = $this->superAdmin();
         $this->admin('taken');
 
         $this->actingAs($boss, 'sanctum')
-            ->postJson('/api/admins', ['name' => 'X', 'username' => 'taken', 'password' => 'password1'])
+            ->postJson('/api/admins', [
+                'name' => 'X', 'username' => 'taken',
+                'password' => 'password1', 'password_confirmation' => 'password1',
+            ])
             ->assertStatus(422)->assertJsonValidationErrors('username');
 
         $this->actingAs($boss, 'sanctum')
-            ->postJson('/api/admins', ['name' => 'X', 'username' => 'newone', 'password' => 'short'])
+            ->postJson('/api/admins', [
+                'name' => 'X', 'username' => 'newone',
+                'password' => 'short', 'password_confirmation' => 'short',
+            ])
             ->assertStatus(422)->assertJsonValidationErrors('password');
     }
 
-    public function test_update_changes_data_and_ends_sessions_on_new_password(): void
+     public function test_admin_password_rules(): void
+    {
+        $boss = $this->superAdmin();
+
+        $cases = [
+            ['onlyletters', 'onlyletters'],   // no numbers
+            ['12345678', '12345678'],         // no letters
+            ['abc12', 'abc12'],               // too short
+            ['password1', 'different2'],      // confirmation does not match
+        ];
+
+        foreach ($cases as [$password, $confirmation]) {
+            $this->actingAs($boss, 'sanctum')
+                ->postJson('/api/admins', [
+                    'name' => 'X', 'username' => 'pw' . random_int(1000, 9999),
+                    'password' => $password, 'password_confirmation' => $confirmation,
+                ])
+                ->assertStatus(422)->assertJsonValidationErrors('password');
+        }
+
+        $this->assertSame(0, User::where('role', 'admin')->count());
+    }
+
+
+     public function test_update_changes_data_and_ends_sessions_on_new_password(): void
     {
         $boss = $this->superAdmin();
         $admin = $this->admin();
@@ -90,14 +123,15 @@ class AdminManagementTest extends TestCase
         ]);
 
         $this->actingAs($boss, 'sanctum')
-            ->patchJson("/api/admins/{$admin->id}", ['name' => 'New Name', 'password' => 'newsecret99'])
+            ->patchJson("/api/admins/{$admin->id}", [
+                'name' => 'New Name', 'password' => 'newsecret99', 'password_confirmation' => 'newsecret99',
+            ])
             ->assertOk()
             ->assertJsonPath('data.name', 'New Name');
 
         $this->assertTrue(Hash::check('newsecret99', $admin->fresh()->password));
         $this->assertDatabaseMissing('sessions', ['id' => 'session-1']);
     }
-
     public function test_deactivate_ends_sessions_and_blocks_login_then_activate_restores(): void
     {
         $boss = $this->superAdmin();
