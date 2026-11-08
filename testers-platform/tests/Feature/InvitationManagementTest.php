@@ -37,20 +37,22 @@ class InvitationManagementTest extends TestCase
             });
         }
 
+        // FR-I10: one attempt per tester, project and link
         if (! Schema::hasTable('project_accesses')) {
             Schema::create('project_accesses', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('tester_id');
                 $table->unsignedBigInteger('project_id');
-                $table->unsignedBigInteger('invitation_id')->nullable();
+                $table->unsignedBigInteger('invitation_id');
                 $table->string('status')->default('not_started');
                 $table->timestamp('started_at')->nullable();
                 $table->timestamp('finished_at')->nullable();
+                $table->timestamp('last_opened_at')->nullable();
                 $table->string('browser')->nullable();
                 $table->string('os')->nullable();
                 $table->string('device_type')->nullable();
                 $table->timestamps();
-                $table->unique(['tester_id', 'project_id']);
+                $table->unique(['tester_id', 'project_id', 'invitation_id']);
             });
         }
     }
@@ -92,6 +94,14 @@ class InvitationManagementTest extends TestCase
         }
 
         return $link;
+    }
+
+    private function accessCount(int $testerId, int $projectId): int
+    {
+        return DB::table('project_accesses')
+            ->where('tester_id', $testerId)
+            ->where('project_id', $projectId)
+            ->count();
     }
 
     public function test_only_admins_can_manage_invitations(): void
@@ -194,41 +204,39 @@ class InvitationManagementTest extends TestCase
         $this->actingAs($this->admin(), 'sanctum')->getJson('/api/invitations/999999')->assertNotFound();
     }
 
-    public function test_update_changes_the_name_only(): void
+    public function test_links_cannot_be_edited(): void
     {
-        $link = $this->link([$this->project()]);
+        $link = $this->link([$this->project()], ['name' => 'Original']);
 
         $this->actingAs($this->admin(), 'sanctum')
             ->patchJson("/api/invitations/{$link->id}", ['name' => 'Renamed'])
-            ->assertOk()->assertJsonPath('data.name', 'Renamed');
+            ->assertStatus(405);
 
-        $this->actingAs($this->admin(), 'sanctum')
-            ->patchJson("/api/invitations/{$link->id}", ['name' => ''])
-            ->assertStatus(422);
+        $this->assertSame('Original', $link->fresh()->name);
     }
 
-    public function test_disable_blocks_registration_and_activate_restores_it(): void
+    public function test_disable_is_permanent_and_blocks_registration(): void
     {
         $link = $this->link([$this->project()]);
         $admin = $this->admin();
 
         $this->actingAs($admin, 'sanctum')->postJson("/api/invitations/{$link->id}/disable")
-            ->assertOk()->assertJsonPath('data.status', 'disabled');
+            ->assertOk()
+            ->assertJsonPath('data.status', 'disabled')
+            ->assertJsonPath('message', 'Invitation link disabled.');
 
-        // Repeating it changes nothing
+        // Disabling twice is safe
         $this->actingAs($admin, 'sanctum')->postJson("/api/invitations/{$link->id}/disable")
             ->assertOk()->assertJsonPath('data.status', 'disabled');
+
+        // There is no way back
+        $this->actingAs($admin, 'sanctum')->postJson("/api/invitations/{$link->id}/activate")->assertNotFound();
 
         $this->withHeaders($this->frontend)
             ->postJson("/api/links/{$link->token}/register", ['name' => 'Ali', 'phone' => '777123456'])
             ->assertStatus(409)->assertJsonPath('code', 'link_disabled');
 
-        $this->actingAs($admin, 'sanctum')->postJson("/api/invitations/{$link->id}/activate")
-            ->assertOk()->assertJsonPath('data.status', 'active');
-
-        $this->withHeaders($this->frontend)
-            ->postJson("/api/links/{$link->token}/register", ['name' => 'Ali', 'phone' => '777123456'])
-            ->assertCreated();
+        $this->assertDatabaseHas('invitations', ['id' => $link->id, 'status' => 'disabled']);
     }
 
     public function test_added_projects_reach_testers_who_already_joined(): void
@@ -258,7 +266,7 @@ class InvitationManagementTest extends TestCase
         $this->assertDatabaseCount('invitation_project', 2);
     }
 
-    public function test_added_projects_never_overwrite_the_first_link_that_granted_access(): void
+    public function test_a_project_added_to_a_second_link_gives_the_tester_one_row_per_link(): void
     {
         $p1 = $this->project('First');
         $p2 = $this->project('Second');
@@ -266,16 +274,75 @@ class InvitationManagementTest extends TestCase
         $link2 = $this->link([$p2]);
 
         $tester = $this->tester(1);
-        app(GrantService::class)->grant($tester, $link2); // access to p2 through link 2
-        app(GrantService::class)->grant($tester, $link1); // joined link 1 as well
+        $grants = app(GrantService::class);
+        $grants->grant($tester, $link2); // attempt on p2 through link 2, opened now
+        $grants->grant($tester, $link1); // joined link 1 as well
 
         $this->actingAs($this->admin(), 'sanctum')
             ->postJson("/api/invitations/{$link1->id}/projects", ['project_ids' => [$p2]])->assertOk();
 
-        $this->assertDatabaseHas('project_accesses', [
-            'tester_id' => $tester->id, 'project_id' => $p2, 'invitation_id' => $link2->id,
-        ]);
-        $this->assertSame(1, DB::table('project_accesses')->where('project_id', $p2)->count());
+        // Two attempts for p2: one per link
+        $this->assertSame(2, $this->accessCount($tester->id, $p2));
+
+        $viaLink2 = DB::table('project_accesses')
+            ->where('tester_id', $tester->id)->where('project_id', $p2)->where('invitation_id', $link2->id)->first();
+        $viaLink1 = DB::table('project_accesses')
+            ->where('tester_id', $tester->id)->where('project_id', $p2)->where('invitation_id', $link1->id)->first();
+
+        $this->assertNotNull($viaLink2->last_opened_at);
+        $this->assertNull($viaLink1->last_opened_at);
+
+        // The tester has not opened link 1 for p2, so the attempt through link 2 stays current
+        $this->assertSame($link2->id, (int) $grants->currentAccess($tester->id, $p2)->invitation_id);
+    }
+
+    public function test_a_different_link_starts_a_new_attempt_and_the_last_opened_is_current(): void
+    {
+        $project = $this->project();
+        $link1 = $this->link([$project]);
+        $link2 = $this->link([$project]);
+        $tester = $this->tester(1);
+        $grants = app(GrantService::class);
+
+        $grants->grant($tester, $link1);
+        $this->travel(5)->minutes();
+        $grants->grant($tester, $link2);
+
+        $this->assertSame(2, $this->accessCount($tester->id, $project));
+        $this->assertSame($link2->id, (int) $grants->currentAccess($tester->id, $project)->invitation_id);
+
+        // Opening the first link again makes its attempt current again
+        $this->travel(5)->minutes();
+        $grants->grant($tester, $link1);
+
+        $this->assertSame(2, $this->accessCount($tester->id, $project));
+        $this->assertSame($link1->id, (int) $grants->currentAccess($tester->id, $project)->invitation_id);
+    }
+
+    public function test_opening_the_same_link_twice_keeps_one_attempt_and_its_progress(): void
+    {
+        $project = $this->project();
+        $link = $this->link([$project]);
+        $tester = $this->tester(1);
+        $grants = app(GrantService::class);
+
+        $grants->grant($tester, $link);
+
+        // The tester makes progress on the attempt (Dev 3's code does this)
+        DB::table('project_accesses')->where('tester_id', $tester->id)
+            ->update(['status' => 'in_progress', 'started_at' => now()]);
+
+        $openedBefore = DB::table('project_accesses')->where('tester_id', $tester->id)->value('last_opened_at');
+
+        $this->travel(10)->minutes();
+        $grants->grant($tester, $link);
+
+        $this->assertSame(1, $this->accessCount($tester->id, $project));
+
+        $row = $grants->currentAccess($tester->id, $project);
+        $this->assertSame('in_progress', $row->status);
+        $this->assertNotNull($row->started_at);
+        $this->assertNotSame($openedBefore, $row->last_opened_at);
     }
 
     public function test_projects_cannot_be_added_to_a_disabled_link(): void
@@ -286,7 +353,9 @@ class InvitationManagementTest extends TestCase
 
         $this->actingAs($this->admin(), 'sanctum')
             ->postJson("/api/invitations/{$link->id}/projects", ['project_ids' => [$p2]])
-            ->assertStatus(409)->assertJsonPath('code', 'link_disabled');
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'link_disabled')
+            ->assertJsonPath('message', 'This link is disabled and cannot get new projects.');
 
         $this->assertDatabaseCount('invitation_project', 1);
     }
