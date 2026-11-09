@@ -2,9 +2,15 @@
 
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;      // DEV 4
+use App\Http\Controllers\Api\ExportController;         // DEV 4
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LinkController;
+use App\Http\Controllers\Api\NotesController;          // DEV 4
+use App\Http\Controllers\Api\OverviewController;       // DEV 4
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ResultsController;        // DEV 4
+use App\Http\Controllers\Api\SummaryController;        // DEV 4
 use App\Http\Controllers\Api\TesterAuthController;
 use App\Http\Controllers\Api\TesterController;
 use App\Http\Controllers\Api\ProjectController;
@@ -69,3 +75,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/admins/{id}', [AdminController::class, 'destroy'])->whereNumber('id');
     });
 });
+
+// ---- DEV 4: results, overview, export (any admin) ----
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('/overview', OverviewController::class);
+
+    Route::prefix('projects/{project}')->where(['project' => '[0-9]+'])->group(function () {
+        Route::get('dashboard', DashboardController::class);
+        Route::get('results/tasks', [ResultsController::class, 'tasks']);
+        Route::get('results/testers', [ResultsController::class, 'testers']);
+        Route::get('results/testers/{number}', [ResultsController::class, 'tester'])->whereNumber('number');
+        Route::get('notes', NotesController::class);
+        Route::get('summary', SummaryController::class);
+        Route::post('export/csv', [ExportController::class, 'csv']);
+        Route::get('report', [ExportController::class, 'report']);
+    });
+});
+// ---- end DEV 4 ----
