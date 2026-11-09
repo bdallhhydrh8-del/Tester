@@ -163,3 +163,19 @@ Route::middleware(['auth:sanctum', 'role:tester'])->prefix('tester')->group(func
         Route::delete('/admins/{id}', [AdminController::class, 'destroy'])->whereNumber('id');
     });
 });
+
+// ---- DEV 4: results, overview, export (any admin) ----
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('/overview', OverviewController::class);
+
+    Route::prefix('projects/{project}')->where(['project' => '[0-9]+'])->group(function () {
+        Route::get('dashboard', DashboardController::class);
+        Route::get('results/tasks', [ResultsController::class, 'tasks']);
+        Route::get('results/testers', [ResultsController::class, 'testers']);
+        Route::get('results/testers/{number}', [ResultsController::class, 'tester'])->whereNumber('number');
+        Route::get('notes', NotesController::class);
+        Route::get('summary', SummaryController::class);
+        Route::post('export/csv', [ExportController::class, 'csv']);
+        Route::get('report', [ExportController::class, 'report']);
+    });
+});
