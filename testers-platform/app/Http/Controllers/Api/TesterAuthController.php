@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TesterResource;
 use App\Services\TesterLogin;
 use Illuminate\Http\Request;
 
@@ -17,6 +18,9 @@ class TesterAuthController extends Controller
         $tester = $login->find($request, $data['phone']);
         $login->startSession($request, $tester);
 
-        return response()->json(['data' => $tester, 'message' => 'Logged in.']);
+        return response()->json([
+            'data' => (new TesterResource($tester))->resolve(),
+            'message' => 'Logged in.',
+        ]);
     }
 }

@@ -13,9 +13,9 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('type', 20);                        
-            $table->string('link', 2048)->nullable();          
+            $table->string('link', 2048);          
             $table->text('note')->nullable();              
-            $table->string('status', 20)->default('disabled'); 
+            $table->string('status', 20)->default('live'); 
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
 
