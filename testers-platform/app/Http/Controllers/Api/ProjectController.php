@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use Illuminate\Support\Str;
 use App\Enums\ProjectStatus;
 use App\Http\Controllers\Concerns\RespondsWithErrors;
 use App\Http\Controllers\Controller;
@@ -37,13 +38,13 @@ class ProjectController extends Controller
         return ProjectResource::collection($projects)->additional(['message' => 'ok']);
     }
 
-    // POST /projects: starts as disabled and copies the default cards 
+    // POST /projects: starts as live and copies the default cards 
     public function store(StoreProjectRequest $request): JsonResponse
     {
         $project = DB::transaction(function () use ($request) {
             $project = Project::create([
                 ...$request->validated(),
-                'status' => ProjectStatus::Disabled,
+                'status' => ProjectStatus::Live,
                 'created_by' => $request->user()->id,
             ]);
 
@@ -59,6 +60,8 @@ class ProjectController extends Controller
                         'required',
                         'custom_questions',
                     ]),
+                    // An old default form saved before titles existed gets a title from its instructions
+                    'title' => $card['title'] ?? Str::limit($card['instructions'], 60),
                     'position' => $i + 1,
                 ]);
             }

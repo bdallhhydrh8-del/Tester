@@ -12,7 +12,8 @@ return new class extends Migration
             $table->id();
             // fixed order inside the project
             $table->foreignId('project_id')->constrained('projects');
-            $table->unsignedInteger('position');              
+            $table->unsignedInteger('position');  
+            $table->string('title');              
             $table->text('instructions');
             // yes / no
             $table->boolean('ask_success')->default(true);    

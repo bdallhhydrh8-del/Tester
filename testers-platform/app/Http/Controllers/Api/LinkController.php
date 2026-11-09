@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TesterResource;
 use App\Models\Invitation;
 use App\Models\User;
 use App\Services\GrantService;
@@ -93,7 +94,7 @@ class LinkController extends Controller
         ], 201);
     }
 
-    /** POST /links/{token}/login: phone only */
+       /** POST /links/{token}/login: phone only */
     public function login(Request $request, string $token, GrantService $grants, TesterLogin $login)
     {
         $invitation = $this->usableInvitation($token);

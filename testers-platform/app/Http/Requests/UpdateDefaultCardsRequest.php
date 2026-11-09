@@ -18,6 +18,7 @@ class UpdateDefaultCardsRequest extends FormRequest
     {
         return [
             'default_cards' => ['required', 'array', 'min:1', 'max:30'],
+            'default_cards.*.title' => ['required', 'string', 'max:255'],
             'default_cards.*.instructions' => ['required', 'string', 'max:2000'],
             'default_cards.*.ask_success' => ['sometimes', 'boolean'],
             'default_cards.*.ask_difficulty' => ['sometimes', 'boolean'],

@@ -11,7 +11,8 @@ class Project extends Model
     protected $fillable = ['name', 'type', 'link', 'note', 'status', 'created_by'];
 
     protected $attributes = [
-        'status' => 'disabled',
+        'status' => 'live',
+
     ];
 
     protected function casts(): array

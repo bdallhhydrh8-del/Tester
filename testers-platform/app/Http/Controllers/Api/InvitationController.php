@@ -32,8 +32,7 @@ class InvitationController extends Controller
             'name' => 'required|string|max:100',
             'project_ids' => 'required|array|min:1',
             'project_ids.*' => 'integer|distinct|exists:projects,id',
-     
-            ]);
+        ]);
 
         $invitation = DB::transaction(function () use ($data, $request) {
             $invitation = Invitation::create([
@@ -63,31 +62,19 @@ class InvitationController extends Controller
         return response()->json(['data' => $this->detail($this->query()->findOrFail($id))]);
     }
 
-    public function update(Request $request, int $id)
+    /** FR-I6: a disabled link stays disabled for good. Safe to call twice. */
+    public function disable(int $id)
     {
         $invitation = Invitation::findOrFail($id);
 
-        $data = $request->validate([
-            'name' => 'required|string|max:100',
-        ]);
-
-        $invitation->update(['name' => trim($data['name'])]);
+        if ($invitation->isActive()) {
+            $invitation->update(['status' => Invitation::DISABLED]);
+        }
 
         return response()->json([
-            'data' => $this->detail($this->query()->findOrFail($id)),
-            'message' => 'Invitation link updated.',
+            'data' => $this->present($this->query()->findOrFail($id)),
+            'message' => 'Invitation link disabled.',
         ]);
-    }
-
-    /** A disabled link cannot register or log in testers. Testers who joined keep their access. */
-    public function disable(int $id)
-    {
-        return $this->setStatus($id, Invitation::DISABLED, 'Invitation link disabled.');
-    }
-
-    public function activate(int $id)
-    {
-        return $this->setStatus($id, Invitation::ACTIVE, 'Invitation link activated.');
     }
 
     /** FR-I7: testers who already joined the link gain access to the new projects. */
@@ -95,10 +82,9 @@ class InvitationController extends Controller
     {
         $invitation = Invitation::findOrFail($id);
 
-        // FR-I6: a disabled link cannot grant projects
         if (! $invitation->isActive()) {
             return response()->json([
-                'message' => 'This link is disabled. Activate it before adding projects.',
+                'message' => 'This link is disabled and cannot get new projects.',
                 'code' => 'link_disabled',
             ], 409);
         }
@@ -121,20 +107,6 @@ class InvitationController extends Controller
         return response()->json([
             'data' => $this->detail($this->query()->findOrFail($id)),
             'message' => 'Projects added to the link.',
-        ]);
-    }
-
-    private function setStatus(int $id, string $status, string $message)
-    {
-        $invitation = Invitation::findOrFail($id);
-
-        if ($invitation->status !== $status) {
-            $invitation->update(['status' => $status]);
-        }
-
-        return response()->json([
-            'data' => $this->present($this->query()->findOrFail($id)),
-            'message' => $message,
         ]);
     }
 

@@ -18,6 +18,7 @@ class StoreCardRequest extends FormRequest
     {
         // position is not here: a new card always goes to the end
         return [
+            'title' => ['required', 'string', 'max:255'],
             'instructions' => ['required', 'string', 'max:2000'],
             'ask_success' => ['sometimes', 'boolean'],
             'ask_difficulty' => ['sometimes', 'boolean'],

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AdminResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,8 @@ class AdminController extends Controller
 
     public function show(int $id)
     {
-        return response()->json(['data' => $this->findAdmin($id)]);
+        return new AdminResource($this->findAdmin($id));
+
     }
 
     public function store(Request $request)
@@ -50,7 +52,10 @@ class AdminController extends Controller
             'password' => $data['password'],
         ]);
 
-        return response()->json(['data' => $admin, 'message' => 'Admin created.'], 201);
+        return (new AdminResource($admin))
+            ->additional(['message' => 'Admin created.'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     public function update(Request $request, int $id)
@@ -71,7 +76,8 @@ class AdminController extends Controller
             $this->endSessions($admin);
         }
 
-        return response()->json(['data' => $admin->fresh(), 'message' => 'Admin updated.']);
+        return (new AdminResource($admin->fresh()))
+            ->additional(['message' => 'Admin updated.']);
     }
 
     public function deactivate(int $id)
@@ -80,7 +86,8 @@ class AdminController extends Controller
         $admin->update(['status' => 'deactivated']);
         $this->endSessions($admin);
 
-        return response()->json(['data' => $admin->fresh(), 'message' => 'Admin deactivated.']);
+        return (new AdminResource($admin->fresh()))
+            ->additional(['message' => 'Admin deactivated.']);
     }
 
     public function activate(int $id)
@@ -88,7 +95,8 @@ class AdminController extends Controller
         $admin = $this->findAdmin($id);
         $admin->update(['status' => 'active']);
 
-        return response()->json(['data' => $admin->fresh(), 'message' => 'Admin activated.']);
+        return (new AdminResource($admin->fresh()))
+            ->additional(['message' => 'Admin activated.']);
     }
 
     public function destroy(int $id)

@@ -24,6 +24,7 @@ class SettingController extends Controller
         // Store every field, so the project "create" step always finds the same shape
         $cards = collect($request->validated('default_cards'))
             ->map(fn (array $card) => [
+                'title' => $card['title'],
                 'instructions' => $card['instructions'],
                 'ask_success' => $card['ask_success'] ?? true,
                 'ask_difficulty' => $card['ask_difficulty'] ?? true,

@@ -37,6 +37,10 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'role:tester'])
     ->prefix('tester')
     ->group(function () {
+    // Any admin (admin or SuperAdmin)
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/profile', [ProfileController::class, 'show']);
+        Route::patch('/profile', [ProfileController::class, 'update']);
 
         // ---- Tester uploads ----
         Route::middleware('throttle:uploads')
@@ -59,6 +63,24 @@ Route::middleware(['auth:sanctum', 'role:tester'])
                 Route::get('/', [TesterProjectController::class, 'show']);
                 Route::post('start', [TesterProjectController::class, 'start']);
                 Route::get('current-card', [TesterCardController::class, 'currentCard']);
+        Route::get('/invitations', [InvitationController::class, 'index']);
+        Route::post('/invitations', [InvitationController::class, 'store']);
+        Route::get('/invitations/{id}', [InvitationController::class, 'show'])->whereNumber('id');
+        Route::post('/invitations/{id}/disable', [InvitationController::class, 'disable'])->whereNumber('id');
+        Route::post('/invitations/{id}/projects', [InvitationController::class, 'addProjects'])->whereNumber('id');
+
+
+        Route::get('/projects', [ProjectController::class, 'index']);
+        Route::post('/projects', [ProjectController::class, 'store']);
+        Route::get('/projects/{project}', [ProjectController::class, 'show']);
+        Route::patch('/projects/{project}', [ProjectController::class, 'update']);
+        Route::post('/projects/{project}/status', [ProjectController::class, 'updateStatus']);
+        
+        Route::get('/projects/{project}/cards', [CardController::class, 'index']);
+        Route::post('/projects/{project}/cards', [CardController::class, 'store']);
+        Route::put('/projects/{project}/cards/order', [CardController::class, 'reorder']);
+        Route::patch('/cards/{card}', [CardController::class, 'update']);
+        Route::delete('/cards/{card}', [CardController::class, 'destroy']);
 
                 Route::middleware('tester.project:expect-card')
                     ->group(function () {
@@ -124,4 +146,15 @@ Route::middleware(['auth:sanctum', 'role:tester'])->prefix('tester')->group(func
     Route::post('projects/{project}/start')->middleware('tester.project');
     Route::get('projects/{project}/current-card')->middleware('tester.project');
     Route::post('projects/{project}/cards/{card}/starttask')->middleware('tester.project:expect-card');
+});
+    // SuperAdmin only
+    Route::middleware('role:super_admin')->group(function () {
+        Route::get('/admins', [AdminController::class, 'index']);
+        Route::post('/admins', [AdminController::class, 'store']);
+        Route::get('/admins/{id}', [AdminController::class, 'show'])->whereNumber('id');
+        Route::patch('/admins/{id}', [AdminController::class, 'update'])->whereNumber('id');
+        Route::post('/admins/{id}/deactivate', [AdminController::class, 'deactivate'])->whereNumber('id');
+        Route::post('/admins/{id}/activate', [AdminController::class, 'activate'])->whereNumber('id');
+        Route::delete('/admins/{id}', [AdminController::class, 'destroy'])->whereNumber('id');
+    });
 });
