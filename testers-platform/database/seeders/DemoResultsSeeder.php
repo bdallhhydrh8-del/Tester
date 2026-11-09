@@ -12,6 +12,12 @@ class DemoResultsSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! class_exists(Card::class) || ! class_exists(ProjectAccess::class) || ! class_exists(TaskResponse::class)) {
+            $this->command?->warn('Skipped: Card, ProjectAccess and TaskResponse models are not merged yet.');
+
+            return;
+        }
+
         if (! DB::table('tester_counter')->exists()) {
             DB::table('tester_counter')->insert(['last_number' => 0]);
         }

@@ -31,7 +31,4 @@ return new class extends Migration
         Schema::dropIfExists('ai_summaries');
     }
 };
-class AiSummary extends Model {
-    protected $guarded = [];
-    protected $casts = ['generated_at' => 'datetime'];
-}
+
