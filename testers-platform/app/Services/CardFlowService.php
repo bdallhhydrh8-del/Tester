@@ -51,6 +51,7 @@ class CardFlowService
     public function snapshot(Card $card): array
     {
         return [
+            'id' => $card->id,
             'position' => $card->position,
             'title' => $card->getAttribute('title'), // Dev 2 is adding this column
             'instructions' => $card->instructions,
@@ -75,8 +76,8 @@ class CardFlowService
     /**
      * Everything the card screen needs. Returned by current-card (also used to resume),
      * starttask, donetask and submit, so the client always gets the same shape.
-     * 'card' is the Card model; the controller turns it into a resource.
-     */
+     * 'card' is an array from definition(): the saved snapshot once the task started,
+     * otherwise the live card.     */
     public function state(ProjectAccess $access): array
     {
         $ids = Card::query()
@@ -110,7 +111,7 @@ class CardFlowService
 
         return [
             'finished' => false,
-            'card' => $card,
+            'card' => $this->definition($card, $response),
             'position' => ($ids->search($card->id) ?: 0) + 1,
             'total' => $total,
             'step' => $this->step($response),
@@ -119,5 +120,11 @@ class CardFlowService
             'success' => $response?->success,
             'server_time' => $serverTime,
         ];
+    }
+
+    /** The card as the tester sees it: the saved copy once the task has started, else the live card. */
+    public function definition(Card $card, ?TaskResponse $response): array
+    {
+        return $response?->card_snapshot ?: $this->snapshot($card);
     }
 }

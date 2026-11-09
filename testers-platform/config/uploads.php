@@ -13,8 +13,10 @@ return [
     'files_dir' => 'images',
     'chunks_dir' => 'chunks',
 
-    // Maximum size per image, in MB. The admin can set 1 to 20 (FR-X1).
-    'max_mb' => 10,
+    // Maximum size per image, in MB.
+    // The admin can set 1 to 20 (FR-X1).
+    'max_mb' => (int) env('UPLOAD_MAX_MB', 10),
+
     'min_allowed_mb' => 1,
     'max_allowed_mb' => 20,
 
@@ -32,7 +34,6 @@ return [
     'chunk_size_mb' => 2,
 
     // Cleanup (CleanupFilesJob).
-    'retention_days' => null,           // delete every file older than this; null = keep forever
     'session_keep_days' => 7,           // finished or cancelled upload_sessions rows are removed after this
 
     'unattached_ttl_hours' => 24,       // files never attached to a response or issue

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\TesterCardController;
+use App\Http\Controllers\Api\TesterProjectController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/admin/login', [AuthController::class, 'adminLogin']);
@@ -32,7 +33,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Temporary route to test the role middleware. Delete it later.
     Route::middleware('role:admin')->get('/admin/ping', fn() => response()->json(['message' => 'pong']));
 });
-
 // ---- Dev 3: tester uploads ----
 Route::middleware(['auth:sanctum', 'role:tester'])
     ->prefix('tester')
@@ -50,11 +50,15 @@ Route::middleware(['auth:sanctum', 'role:tester'])
                 Route::post('/', [UploadController::class, 'store']);
             });
 
-        // ---- Tester card routes: current-card requires project access; task and submit actions require the expected card. ----
+        // ---- Tester project & card routes ----
+        Route::get('home', [TesterProjectController::class, 'home']);
+
         Route::prefix('projects/{project}')
+            ->middleware('tester.project')
             ->group(function () {
-                Route::get('current-card', [TesterCardController::class, 'currentCard'])
-                    ->middleware('tester.project');
+                Route::get('/', [TesterProjectController::class, 'show']);
+                Route::post('start', [TesterProjectController::class, 'start']);
+                Route::get('current-card', [TesterCardController::class, 'currentCard']);
 
                 Route::middleware('tester.project:expect-card')
                     ->group(function () {
@@ -64,7 +68,6 @@ Route::middleware(['auth:sanctum', 'role:tester'])
                     });
             });
     });
-
 // Any admin (admin or SuperAdmin)
 Route::middleware('role:admin')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);

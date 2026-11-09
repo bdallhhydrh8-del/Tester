@@ -31,7 +31,6 @@ class CleanupFilesJob implements ShouldQueue
         $this->settings = $settings;
 
         Log::info('Upload cleanup finished', [
-            'retention' => $this->purgeExpired(),
             'unattached' => $this->purgeUnattached(),
             'sessions_expired' => $this->expireStaleSessions(),
         ]);
@@ -44,26 +43,7 @@ class CleanupFilesJob implements ShouldQueue
         return Storage::disk($this->settings->disk());
     }
 
-    /** Retention: delete every file older than retention_days, attached or not. */
-    private function purgeExpired(): int
-    {
-        $days = $this->settings->retentionDays();
-
-        if ($days === null) {
-            return 0; // keep forever
-        }
-
-        $count = 0;
-
-        StoredFile::where('created_at', '<', now()->subDays($days))
-            ->chunkById(200, function ($files) use (&$count) {
-                foreach ($files as $file) {
-                    $count += $this->purge($file, onlyIfUnattached: false) ? 1 : 0;
-                }
-            });
-
-        return $count;
-    }
+ 
 
     /** Files that were uploaded but never used. */
     private function purgeUnattached(): int

@@ -5,9 +5,7 @@ namespace App\Support;
 /**
  * Single place that answers "what are the upload rules right now?".
  *
- * Today it reads config/uploads.php. When Dev 2's settings table exists,
- * change only the private methods marked TODO; nothing that calls this class
- * needs to change.
+ * It reads configuration from config/uploads.php.
  */
 class UploadSettings
 {
@@ -29,7 +27,6 @@ class UploadSettings
     /** Maximum size per image in MB, always kept between 1 and 20. */
     public function maxMb(): int
     {
-        // TODO: read settings.upload_max_mb first once Dev 2's table exists.
         $value = (int) config('uploads.max_mb');
 
         return max(
@@ -46,7 +43,6 @@ class UploadSettings
     /** @return array<string,string> MIME type => extension */
     public function allowedTypes(): array
     {
-        // TODO: read settings.allowed_types (filtered against the config list).
         return config('uploads.allowed_types');
     }
 
@@ -93,14 +89,7 @@ class UploadSettings
         return (int) config('uploads.session_ttl_hours');
     }
 
-    /** Days to keep files before deletion. null means keep forever. */
-    public function retentionDays(): ?int
-    {
-        // TODO: read settings.retention_days first once Dev 2's table exists.
-        $days = config('uploads.retention_days');
-
-        return $days !== null && (int) $days > 0 ? (int) $days : null;
-    }
+ 
 
     public function sessionKeepDays(): int
     {

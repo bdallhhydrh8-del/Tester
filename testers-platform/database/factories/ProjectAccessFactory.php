@@ -19,14 +19,15 @@ class ProjectAccessFactory extends Factory
         return [
             'tester_id' => User::factory()->state(['role' => 'tester']),
             'project_id' => Project::factory(), // needs a ProjectFactory from Dev 2
-            'invitation_id' => null,
+            'invitation_id' => \App\Models\Invitation::factory(),   // Dev 1's factory
+            'entered_at' => now(),
             'status' => ProjectAccess::NOT_STARTED,
         ];
     }
 
     public function inProgress(): static
     {
-        return $this->state(fn () => [
+        return $this->state(fn() => [
             'status' => ProjectAccess::IN_PROGRESS,
             'started_at' => now()->subMinutes(random_int(5, 600)),
         ] + $this->device());

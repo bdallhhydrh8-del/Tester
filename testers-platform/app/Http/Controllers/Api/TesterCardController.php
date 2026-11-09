@@ -7,7 +7,7 @@ use App\Exceptions\TesterFlowException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tester\DoneTaskRequest;
 use App\Http\Requests\Tester\SubmitCardRequest;
-use App\Http\Resources\Tester\CardResource;
+use App\Http\Resources\CardResource;
 use App\Models\Card;
 use App\Models\ProjectAccess;
 use App\Models\TaskResponse;
@@ -16,6 +16,7 @@ use App\Services\FileAttachmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+
 
 /**
  * The card flow. Every route here sits behind the tester.project middleware, which has
@@ -29,8 +30,7 @@ class TesterCardController extends Controller
     public function __construct(
         private CardFlowService $flow,
         private FileAttachmentService $files,
-    ) {
-    }
+    ) {}
 
     /** GET /tester/projects/{project}/current-card : the next card. Also used to resume. */
     public function currentCard(Request $request): JsonResponse
@@ -95,7 +95,7 @@ class TesterCardController extends Controller
             ->whereNull('task_ended_at')
             ->update(['task_ended_at' => $ended, 'duration_seconds' => $seconds]);
 
-        if ($card->ask_success) {
+        if ($this->flow->definition($card, $response)['ask_success']) {
             TaskResponse::whereKey($response->id)->update(['success' => $request->boolean('success')]);
         }
 
@@ -130,7 +130,7 @@ class TesterCardController extends Controller
                 throw new TesterFlowException('task_not_finished');
             }
 
-            if ($card->ask_success && $response->success === null) {
+            if ($this->flow->definition($card, $response)['ask_success'] && $response->success === null) {
                 throw new TesterFlowException('success_missing');
             }
 
@@ -172,10 +172,7 @@ class TesterCardController extends Controller
     /** The card screen state, with the card turned into its tester-facing resource. */
     private function payload(ProjectAccess $access): array
     {
-        $state = $this->flow->state($access);
-        $state['card'] = $state['card'] ? (new CardResource($state['card']))->resolve() : null;
-
-        return $state;
+        return $this->flow->state($access);
     }
 
     // Replace with Dev 1's response helper if the project has one.

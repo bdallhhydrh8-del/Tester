@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Tester;
+namespace Tests\Feature;
 
 use App\Models\ProjectAccess;
 use App\Models\TaskResponse;
@@ -15,15 +15,36 @@ class ProjectAccessSchemaTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_a_tester_has_at_most_one_access_per_project(): void
+    public function test_a_tester_cannot_access_the_same_invitation_twice(): void
     {
         $access = ProjectAccess::factory()->create();
 
         $this->expectException(QueryException::class);
 
-        ProjectAccess::create([
+        ProjectAccess::factory()->create([
             'tester_id' => $access->tester_id,
             'project_id' => $access->project_id,
+            'invitation_id' => $access->invitation_id,
+        ]);
+    }
+
+    public function test_a_tester_can_access_the_same_project_with_a_new_invitation(): void
+    {
+        $first = ProjectAccess::factory()->create();
+
+        $second = ProjectAccess::factory()->create([
+            'tester_id' => $first->tester_id,
+            'project_id' => $first->project_id,
+        ]);
+
+        $this->assertNotEquals($first->id, $second->id);
+        $this->assertNotEquals($first->invitation_id, $second->invitation_id);
+
+        $this->assertDatabaseHas('project_accesses', [
+            'id' => $second->id,
+            'tester_id' => $first->tester_id,
+            'project_id' => $first->project_id,
+            'invitation_id' => $second->invitation_id,
         ]);
     }
 

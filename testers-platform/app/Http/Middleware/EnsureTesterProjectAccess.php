@@ -40,10 +40,7 @@ class EnsureTesterProjectAccess
             throw new TesterFlowException('project_not_found', 404);
         }
 
-        $access = ProjectAccess::query()
-            ->where('tester_id', $request->user()->id)
-            ->where('project_id', $project->id)
-            ->first();
+       $access = ProjectAccess::currentFor($request->user()->id, $project->id);
 
         if (! $access) {
             throw new TesterFlowException('project_not_found', 404);
