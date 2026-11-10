@@ -20,8 +20,7 @@ class UpdateCardRequest extends FormRequest
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'instructions' => ['sometimes', 'required', 'string', 'max:2000'],
-            'ask_success' => ['sometimes', 'boolean'],
-            'ask_difficulty' => ['sometimes', 'boolean'],
+            'ask_ease' => ['sometimes', 'boolean'],
             'ask_notes' => ['sometimes', 'boolean'],
             'ask_file' => ['sometimes', 'boolean'],
             'required' => ['sometimes', 'boolean'],

@@ -127,6 +127,9 @@ Route::middleware('role:admin')->group(function () {
 
     Route::get('/settings/default-cards', [SettingController::class, 'showDefaultCards']);
     Route::put('/settings/default-cards', [SettingController::class, 'updateDefaultCards']);
+
+    Route::get('/settings/default-note', [SettingController::class, 'showDefaultNote']);
+    Route::put('/settings/default-note', [SettingController::class, 'updateDefaultNote']);
 });
 
 // SuperAdmin only
