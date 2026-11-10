@@ -81,7 +81,7 @@ class TesterProjectController extends Controller
         return (new ProjectResource($access, $progress[$access->id]))->resolve();
     }
 
-    // Replace with Dev 1's response helper if the project has one.
+   
     private function respond(mixed $data, ?string $message = null, int $status = 200): JsonResponse
     {
         return response()->json(['data' => $data, 'message' => $message], $status);

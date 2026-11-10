@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /*
- * One row per tester per card. The row is created when the tester presses "Start task".
+  The duration is calculated by the server at ‘Done with task’” becomes “calculated by the server when the tester answers Yes or No.
  */
 return new class extends Migration
 {

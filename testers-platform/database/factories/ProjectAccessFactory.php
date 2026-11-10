@@ -33,6 +33,16 @@ class ProjectAccessFactory extends Factory
         ] + $this->device());
     }
 
+
+    public function endedEarly(): static
+    {
+        return $this->state(fn() => [
+            'status' => ProjectAccess::ENDED_EARLY,
+            'started_at' => now()->subMinutes(random_int(5, 600)),
+            'finished_at' => null,
+        ] + $this->device());
+    }
+
     public function finished(): static
     {
         return $this->state(function () {

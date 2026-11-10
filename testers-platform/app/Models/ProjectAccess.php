@@ -18,6 +18,7 @@ class ProjectAccess extends Model
     public const NOT_STARTED = 'not_started';
     public const IN_PROGRESS = 'in_progress';
     public const FINISHED = 'finished';
+    public const ENDED_EARLY = 'ended_early';
 
     protected $fillable = [
         'tester_id',

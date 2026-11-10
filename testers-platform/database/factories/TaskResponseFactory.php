@@ -42,7 +42,7 @@ class TaskResponseFactory extends Factory
     /** The tester pressed "Start task" and is still doing it. */
     public function inTask(): static
     {
-        return $this->state(fn () => [
+        return $this->state(fn() => [
             'task_started_at' => now()->subMinutes(random_int(1, 20)),
         ]);
     }
@@ -50,7 +50,7 @@ class TaskResponseFactory extends Factory
     /** "Done with task" pressed, questions not submitted yet. */
     public function taskDone(?int $seconds = null): static
     {
-        return $this->state(fn () => $this->timing($seconds) + [
+        return $this->state(fn() => $this->timing($seconds) + [
             'success' => fake()->boolean(80),
         ]);
     }
@@ -63,7 +63,7 @@ class TaskResponseFactory extends Factory
 
             return $timing + [
                 'success' => fake()->boolean(80),
-                'difficulty' => random_int(1, 5),
+                'ease' => random_int(1, 5),
                 'notes' => fake()->randomElement([
                     'الخطوات واضحة',
                     'لم أجد زر التسجيل بسهولة',

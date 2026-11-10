@@ -11,16 +11,22 @@ use App\Models\TaskResponse;
  */
 class CardFlowService
 {
-    public const STEP_READY = 'ready';          // instructions shown, timer not running
-    public const STEP_IN_TASK = 'in_task';      // Start pressed, timer running
-    public const STEP_QUESTIONS = 'questions';  // Done pressed, timer stopped
+    public const STEP_READY = 'ready';        // instructions, timer not running
+    public const STEP_RUNNING = 'running';    // Start pressed, timer running
+    public const STEP_FEEDBACK = 'feedback';  // answered Yes: ease, custom questions, notes, file
+    public const STEP_PROBLEM = 'problem';    // answered No: reason, description, images
+    public const STEP_FINISHED = 'finished';  // every task submitted: thank-you
+    public const STEP_ENDED = 'ended';        // the tester ended the test early: thank-you  // Done pressed, timer stopped
 
     /**
      * The card the tester must do next: the first card, in fixed order, without a submitted answer.
      * Null when every card is submitted. Deleted cards are skipped automatically (soft delete).
      */
     public function currentCard(ProjectAccess $access): ?Card
-    {
+    {   
+        if ($access->status === ProjectAccess::ENDED_EARLY) {
+        return null; // an ended attempt has no next card; the middleware then refuses every task route
+    }
         $submittedCardIds = TaskResponse::query()
             ->where('project_access_id', $access->id)
             ->whereNotNull('submitted_at')

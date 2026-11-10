@@ -25,7 +25,7 @@ class TaskResponse extends Model
         'task_ended_at',
         'duration_seconds',
         'success',
-        'difficulty',
+        'ease',
         'notes',
         'custom_answers',
         'submitted_at',
@@ -39,7 +39,7 @@ class TaskResponse extends Model
         'submitted_at' => 'datetime',
         'duration_seconds' => 'integer',
         'success' => 'boolean',
-        'difficulty' => 'integer',
+        'ease' => 'integer',
     ];
 
     public function access(): BelongsTo

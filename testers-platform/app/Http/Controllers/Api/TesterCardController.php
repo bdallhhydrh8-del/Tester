@@ -7,7 +7,6 @@ use App\Exceptions\TesterFlowException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tester\DoneTaskRequest;
 use App\Http\Requests\Tester\SubmitCardRequest;
-use App\Http\Resources\CardResource;
 use App\Models\Card;
 use App\Models\ProjectAccess;
 use App\Models\TaskResponse;
