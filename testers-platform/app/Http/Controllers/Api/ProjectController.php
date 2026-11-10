@@ -44,7 +44,6 @@ class ProjectController extends Controller
         $project = DB::transaction(function () use ($request) {
             $project = Project::create([
                 ...$request->validated(),
-                'note' => $request->has('note') ? $request->validated('note') : Setting::current()->default_note,
                 'status' => ProjectStatus::Live,
                 'created_by' => $request->user()->id,
             ]);

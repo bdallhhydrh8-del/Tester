@@ -27,13 +27,12 @@ return new class extends Migration
 
         DB::table('settings')->where('id', $row->id)->update([
             'default_cards' => json_encode($cards, JSON_UNESCAPED_UNICODE),
-            'default_note' => $row->default_note ?? 'شكراً لمشاركتك في اختبار منتجنا. اتبع التعليمات في كل مهمة، وأجب بصدق، ولا تتردد في الإبلاغ عن أي مشكلة تواجهك.',
         ]);
     }
 }
 
 public function down(): void
 {
-    Schema::table('settings', fn (Blueprint $table) => $table->dropColumn('default_note'));
+    
 }
 };

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateDefaultCardsRequest;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
@@ -42,32 +41,6 @@ class SettingController extends Controller
         return response()->json([
             'data' => ['default_cards' => $setting->fresh()->default_cards],
             'message' => 'Default task form updated',
-        ]);
-    }
-
-    // GET /settings/default-note
-    public function showDefaultNote(): JsonResponse
-    {
-        return response()->json([
-            'data' => ['default_note' => Setting::current()->default_note],
-            'message' => 'ok',
-        ]);
-    }
-
-    // PUT /settings/default-note  body: { "default_note": "..." }
-    // Changes the note for new projects only. Existing projects keep their own note.
-    public function updateDefaultNote(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'default_note' => ['required', 'string', 'max:2000'],
-        ]);
-
-        $setting = Setting::current();
-        $setting->update($data);
-
-        return response()->json([
-            'data' => ['default_note' => $setting->fresh()->default_note],
-            'message' => 'Default note updated',
         ]);
     }
 }

@@ -47,9 +47,7 @@ class Setting extends Model
                     'custom_questions' => null,
                 ],
             ],
-            
-            // The note testers read before they start. Wording to be confirmed with the company.
-            'default_note' => 'شكراً لمشاركتك في اختبار منتجنا. اتبع التعليمات في كل مهمة، وأجب بصدق، ولا تتردد في الإبلاغ عن أي مشكلة تواجهك.',
+
         ];
     }
 }
