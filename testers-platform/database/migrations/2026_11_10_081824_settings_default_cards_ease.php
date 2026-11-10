@@ -9,10 +9,7 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
    public function up(): void
-{
-    Schema::table('settings', function (Blueprint $table) {
-        $table->text('default_note')->nullable()->after('default_cards');
-    });
+    {
 
     // Convert the saved default form, if a row already exists.
     foreach (DB::table('settings')->get() as $row) {
@@ -31,8 +28,8 @@ return new class extends Migration
     }
 }
 
-public function down(): void
-{
+    public function down(): void
+    {
     
-}
+    }
 };
