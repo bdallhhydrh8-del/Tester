@@ -105,14 +105,13 @@ Route::middleware('role:admin')->group(function () {
     Route::get('/testers/{id}', [TesterController::class, 'show'])->whereNumber('id');
     Route::patch('/testers/{id}', [TesterController::class, 'update'])->whereNumber('id');
 
-    Route::get('/invitations', [InvitationController::class, 'index']);
-    Route::post('/invitations', [InvitationController::class, 'store']);
-    Route::get('/invitations/{id}', [InvitationController::class, 'show'])->whereNumber('id');
-    Route::patch('/invitations/{id}', [InvitationController::class, 'update'])->whereNumber('id');
-    Route::post('/invitations/{id}/stop', [InvitationController::class, 'stop'])->whereNumber('id');
-    Route::post('/invitations/{id}/disable', [InvitationController::class, 'disable'])->whereNumber('id');
-    Route::post('/invitations/{id}/activate', [InvitationController::class, 'activate'])->whereNumber('id');
-    Route::post('/invitations/{id}/projects', [InvitationController::class, 'addProjects'])->whereNumber('id');
+        Route::get('/invitations', [InvitationController::class, 'index']);
+        Route::post('/invitations', [InvitationController::class, 'store']);
+        Route::get('/invitations/{id}', [InvitationController::class, 'show'])->whereNumber('id');
+        Route::patch('/invitations/{id}', [InvitationController::class, 'update'])->whereNumber('id');
+        Route::post('/invitations/{id}/disable', [InvitationController::class, 'disable'])->whereNumber('id');
+        Route::post('/invitations/{id}/activate', [InvitationController::class, 'activate'])->whereNumber('id');
+        Route::post('/invitations/{id}/projects', [InvitationController::class, 'addProjects'])->whereNumber('id');
 
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::post('/projects', [ProjectController::class, 'store']);
@@ -128,6 +127,9 @@ Route::middleware('role:admin')->group(function () {
 
     Route::get('/settings/default-cards', [SettingController::class, 'showDefaultCards']);
     Route::put('/settings/default-cards', [SettingController::class, 'updateDefaultCards']);
+
+    Route::get('/settings/default-note', [SettingController::class, 'showDefaultNote']);
+    Route::put('/settings/default-note', [SettingController::class, 'updateDefaultNote']);
 });
 
 // SuperAdmin only
@@ -180,4 +182,3 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::get('report', [ExportController::class, 'report']);
     });
 });
-// ---- end DEV 4 ----

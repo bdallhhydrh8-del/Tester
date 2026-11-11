@@ -15,8 +15,7 @@ class Card extends Model
         'position',
         'title',
         'instructions',
-        'ask_success',
-        'ask_difficulty',
+        'ask_ease',
         'ask_notes',
         'ask_file',
         'required',
@@ -27,8 +26,7 @@ class Card extends Model
     {
         return [
             'position' => 'integer',
-            'ask_success' => 'boolean',
-            'ask_difficulty' => 'boolean',
+            'ask_ease' => 'boolean',
             'ask_notes' => 'boolean',
             'ask_file' => 'boolean',
             'required' => 'boolean',
@@ -50,8 +48,7 @@ class Card extends Model
         return [
             'title' => $this->title,
             'instructions' => $this->instructions,
-            'ask_success' => $this->ask_success,
-            'ask_difficulty' => $this->ask_difficulty,
+            'ask_ease' => $this->ask_ease,
             'ask_notes' => $this->ask_notes,
             'ask_file' => $this->ask_file,
             'required' => $this->required,
