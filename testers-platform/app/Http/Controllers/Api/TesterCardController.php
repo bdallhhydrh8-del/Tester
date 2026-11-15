@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Events\TesterFinishedProject;
 use App\Exceptions\TesterFlowException;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Tester\DoneTaskRequest;
 use App\Http\Requests\Tester\SubmitCardRequest;
+use App\Contracts\FailedTaskIssueCreator;
+use App\Http\Requests\Tester\AnswerRequest;
+use App\Http\Requests\Tester\ProblemRequest;
 use App\Models\Card;
 use App\Models\ProjectAccess;
 use App\Models\TaskResponse;
@@ -69,8 +71,8 @@ class TesterCardController extends Controller
         return $this->respond($this->payload($access));
     }
 
-    /** POST .../cards/{card}/donetask : the timer stops, and the tester answers "success". */
-    public function doneTask(DoneTaskRequest $request): JsonResponse
+    /** POST .../cards/{card}/answer : the timer stops and the answer is final. */
+    public function answer(AnswerRequest $request): JsonResponse
     {
         $access = $request->attributes->get('project_access');
         $card = $request->attributes->get('card');
@@ -88,76 +90,88 @@ class TesterCardController extends Controller
         $ended = now();
         $seconds = max(0, (int) round($response->task_started_at->diffInSeconds($ended, true)));
 
-        // Only the first press saves the end time and the duration. A later press
-        // (the tester changes their answer) can only change "success".
-        TaskResponse::whereKey($response->id)
+        // whereNull makes a double tap safe: only one request can save the answer.
+        $saved = TaskResponse::whereKey($response->id)
             ->whereNull('task_ended_at')
-            ->update(['task_ended_at' => $ended, 'duration_seconds' => $seconds]);
+            ->update([
+                'task_ended_at' => $ended,
+                'duration_seconds' => $seconds,
+                'success' => $request->boolean('success'),
+            ]);
 
-        if ($this->flow->definition($card, $response)['ask_success']) {
-            TaskResponse::whereKey($response->id)->update(['success' => $request->boolean('success')]);
+        if ($saved === 0) {
+            throw new TesterFlowException('already_answered');
         }
 
         return $this->respond($this->payload($access));
     }
 
-    /** POST .../cards/{card}/submit : saves the answers and moves to the next card. */
     public function submit(SubmitCardRequest $request): JsonResponse
     {
-        /** @var ProjectAccess $access */
         $access = $request->attributes->get('project_access');
-        /** @var Card $card */
         $card = $request->attributes->get('card');
 
-        $finished = DB::transaction(function () use ($request, $access, $card) {
-            // Locked, so a double tap cannot submit twice.
-            $response = TaskResponse::query()
-                ->where('project_access_id', $access->id)
-                ->where('card_id', $card->id)
-                ->lockForUpdate()
-                ->first();
+        $outcome = DB::transaction(function () use ($request, $access, $card) {
+            $response = $this->assertAnswered($this->lockedResponse($access, $card));
 
-            if (! $response || ! $response->task_started_at) {
-                throw new TesterFlowException('task_not_started');
-            }
-
-            if ($response->isSubmitted()) {
-                throw new TesterFlowException('already_submitted');
-            }
-
-            if (! $response->task_ended_at) {
-                throw new TesterFlowException('task_not_finished');
-            }
-
-            if ($this->flow->definition($card, $response)['ask_success'] && $response->success === null) {
-                throw new TesterFlowException('success_missing');
+            if ($response->success !== true) {
+                throw new TesterFlowException('wrong_step');
             }
 
             $response->update([
-                'difficulty' => $request->validated('difficulty'),
+                'ease' => $request->validated('ease'),
                 'notes' => $request->validated('notes'),
                 'custom_answers' => $request->validated('custom_answers'),
-                'submitted_at' => now(),
+                'submitted_at' => now(), // the task is done only now
             ]);
 
             // All or nothing: a bad file id rolls the whole submit back.
             $this->files->attach($response, $request->user(), $request->validated('file_ids', []));
 
-            $isLast = $this->flow->currentCard($access) === null;
-
-            if ($isLast) {
-                $access->update(['status' => ProjectAccess::FINISHED, 'finished_at' => now()]);
-            }
-
-            return $isLast;
+            return $this->finishIfLast($access);
         });
 
-        // After the commit, so listeners always see the saved answers.
-        if ($finished) {
-            event(new TesterFinishedProject($access->fresh()));
-        }
+        $this->announce($access, $outcome); // after the commit
 
-        return $this->respond($this->payload($access));
+        return $this->respond($this->payload($access->fresh()));
+    }
+
+    /** POST .../cards/{card}/problem : the tester says what went wrong, then continues or ends the test. */
+    public function problem(ProblemRequest $request, FailedTaskIssueCreator $issues): JsonResponse
+    {
+        $access = $request->attributes->get('project_access');
+        $card = $request->attributes->get('card');
+
+        $outcome = DB::transaction(function () use ($request, $issues, $access, $card) {
+            $response = $this->assertAnswered($this->lockedResponse($access, $card));
+
+            if ($response->success !== false) {
+                throw new TesterFlowException('wrong_step');
+            }
+
+            // Dev 4 creates the issue and attaches the screenshots, in this same transaction.
+            $issues->createFromFailedTask(
+                $access,
+                $card,
+                $request->validated('reason'),
+                $request->validated('description'),
+                $request->validated('file_ids', []),
+            );
+
+            $response->update(['submitted_at' => now()]); // the task is done only now
+
+            if ($request->validated('action') === 'end') {
+                $access->update(['status' => ProjectAccess::ENDED_EARLY]); // finished_at stays empty
+
+                return TesterFinishedProject::ENDED_EARLY;
+            }
+
+            return $this->finishIfLast($access); // the next card, or finished if this was the last
+        });
+
+        $this->announce($access, $outcome);
+
+        return $this->respond($this->payload($access->fresh()));
     }
 
     private function responseFor(ProjectAccess $access, Card $card): ?TaskResponse
@@ -178,5 +192,43 @@ class TesterCardController extends Controller
     private function respond(mixed $data, ?string $message = null, int $status = 200): JsonResponse
     {
         return response()->json(['data' => $data, 'message' => $message], $status);
+    }
+
+    private function lockedResponse(ProjectAccess $access, Card $card): ?TaskResponse
+    {
+        return TaskResponse::query()
+            ->where('project_access_id', $access->id)
+            ->where('card_id', $card->id)
+            ->lockForUpdate()
+            ->first();
+    }
+
+    /** The task must have started, been answered, and not be done yet. */
+    private function assertAnswered(?TaskResponse $response): TaskResponse
+    {
+        if (! $response || ! $response->task_started_at) throw new TesterFlowException('task_not_started');
+        if ($response->isSubmitted()) throw new TesterFlowException('already_submitted');
+        if (! $response->task_ended_at) throw new TesterFlowException('task_not_answered');
+
+        return $response;
+    }
+
+    /** No card left means the attempt is finished. Returns the outcome, or null. */
+    private function finishIfLast(ProjectAccess $access): ?string
+    {
+        if ($this->flow->currentCard($access) !== null) {
+            return null;
+        }
+
+        $access->update(['status' => ProjectAccess::FINISHED, 'finished_at' => now()]);
+
+        return TesterFinishedProject::FINISHED;
+    }
+
+    private function announce(ProjectAccess $access, ?string $outcome): void
+    {
+        if ($outcome) {
+            event(new TesterFinishedProject($access->fresh(), $outcome));
+        }
     }
 }

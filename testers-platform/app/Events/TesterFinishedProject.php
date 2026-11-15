@@ -15,7 +15,10 @@ class TesterFinishedProject
 {
     use Dispatchable, SerializesModels;
 
-    public function __construct(public ProjectAccess $access)
+    public const FINISHED = 'finished';
+    public const ENDED_EARLY = 'ended_early';
+
+    public function __construct(public ProjectAccess $access, public string $outcome = self::FINISHED)
     {
     }
 }

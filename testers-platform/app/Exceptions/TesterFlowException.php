@@ -10,7 +10,8 @@ use RuntimeException;
  * The message is looked up in lang/ar/tester.php using the error code.
  *
  * Codes: project_not_found, card_not_expected (404);
- *        task_not_started, task_not_finished, already_submitted, success_missing (409).
+ *        task_not_started, task_not_finished, already_submitted, success_missing,
+ *        another_project_in_progress, project_not_started (409).
  */
 class TesterFlowException extends RuntimeException
 {
@@ -19,7 +20,7 @@ class TesterFlowException extends RuntimeException
         public readonly int $status = 409,
         array $replace = [],
     ) {
-        parent::__construct(__('tester.'.$errorCode, $replace));
+        parent::__construct(__('tester.' . $errorCode, $replace));
     }
 
     /** Same shape as the other API errors: message, errors, code. */

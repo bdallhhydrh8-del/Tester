@@ -21,7 +21,6 @@ class StoreCardRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'instructions' => ['required', 'string', 'max:2000'],
             'ask_ease' => ['sometimes', 'boolean'],
-            'ask_difficulty' => ['sometimes', 'boolean'],
             'ask_notes' => ['sometimes', 'boolean'],
             'ask_file' => ['sometimes', 'boolean'],
             'required' => ['sometimes', 'boolean'],

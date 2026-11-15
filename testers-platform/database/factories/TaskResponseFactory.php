@@ -25,12 +25,12 @@ class TaskResponseFactory extends Factory
         return [
             'project_access_id' => ProjectAccess::factory(),
             'card_id' => Card::factory(), // needs a CardFactory from Dev 2
-            // Mirrors Dev 2's cards columns (there is no title column).
+            
             'card_snapshot' => [
+                'title' => 'مهمة إنشاء حساب جديد',
                 'position' => 1,
                 'instructions' => "افتح شاشة التسجيل في التطبيق واضغط على زر «إنشاء حساب جديد».\nأدخل بيانات تجريبية ثم أكمل التسجيل.",
-                'ask_success' => true,
-                'ask_difficulty' => true,
+                'ask_ease' => true,
                 'ask_notes' => true,
                 'ask_file' => false,
                 'required' => true,

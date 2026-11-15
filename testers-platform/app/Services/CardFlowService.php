@@ -23,10 +23,10 @@ class CardFlowService
      * Null when every card is submitted. Deleted cards are skipped automatically (soft delete).
      */
     public function currentCard(ProjectAccess $access): ?Card
-    {   
+    {
         if ($access->status === ProjectAccess::ENDED_EARLY) {
-        return null; // an ended attempt has no next card; the middleware then refuses every task route
-    }
+            return null; // an ended attempt has no next card; the middleware then refuses every task route
+        }
         $submittedCardIds = TaskResponse::query()
             ->where('project_access_id', $access->id)
             ->whereNotNull('submitted_at')
@@ -57,12 +57,10 @@ class CardFlowService
     public function snapshot(Card $card): array
     {
         return [
-            'id' => $card->id,
             'position' => $card->position,
-            'title' => $card->getAttribute('title'), // Dev 2 is adding this column
+            'title' => $card->title,
             'instructions' => $card->instructions,
-            'ask_success' => (bool) $card->ask_success,
-            'ask_difficulty' => (bool) $card->ask_difficulty,
+            'ask_ease' => (bool) $card->ask_ease,
             'ask_notes' => (bool) $card->ask_notes,
             'ask_file' => (bool) $card->ask_file,
             'required' => (bool) $card->required,
@@ -76,7 +74,11 @@ class CardFlowService
             return self::STEP_READY;
         }
 
-        return $response->task_ended_at ? self::STEP_QUESTIONS : self::STEP_IN_TASK;
+        if (! $response->task_ended_at) {
+            return self::STEP_RUNNING;
+        }
+
+        return $response->success === true ? self::STEP_FEEDBACK : self::STEP_PROBLEM;
     }
 
     /**
@@ -93,21 +95,26 @@ class CardFlowService
             ->pluck('id');
 
         $total = $ids->count();
+
+        // The same keys in every state, so the client never checks for missing ones.
+        $base = [
+            'card' => null,
+            'total' => $total,
+            'task_started_at' => null,
+            'task_ended_at' => null,
+            'success' => null,
+            'server_time' => now()->toIso8601ZuluString(),
+        ];
+
+        // Ended early: no card, even if cards are left.
+        if ($access->status === ProjectAccess::ENDED_EARLY) {
+            return $base + ['step' => self::STEP_ENDED, 'position' => $this->completedCount($access)];
+        }
+
         $card = $this->currentCard($access);
-        $serverTime = now()->toIso8601ZuluString(); // lets the client show a timer that survives a refresh
 
         if (! $card) {
-            return [
-                'finished' => true,
-                'card' => null,
-                'position' => $total,
-                'total' => $total,
-                'step' => null,
-                'task_started_at' => null,
-                'task_ended_at' => null,
-                'success' => null,
-                'server_time' => $serverTime,
-            ];
+            return $base + ['step' => self::STEP_FINISHED, 'position' => $total];
         }
 
         $response = TaskResponse::query()
@@ -116,16 +123,38 @@ class CardFlowService
             ->first();
 
         return [
-            'finished' => false,
-            'card' => $this->definition($card, $response),
+            'step' => $this->step($response),
+            'card' => $this->cardPayload($card, $this->definition($card, $response)),
             'position' => ($ids->search($card->id) ?: 0) + 1,
             'total' => $total,
-            'step' => $this->step($response),
             'task_started_at' => $response?->task_started_at?->toIso8601ZuluString(),
             'task_ended_at' => $response?->task_ended_at?->toIso8601ZuluString(),
             'success' => $response?->success,
-            'server_time' => $serverTime,
+            'server_time' => $base['server_time'],
         ];
+    }
+
+    /** What the tester's screen shows. Built from the saved copy, so it never changes under them. */
+    private function cardPayload(Card $card, array $def): array
+    {
+        return [
+            'id' => $card->id, // the only live value: ids never change, and the URLs need it
+            'title' => $def['title'] ?? null,
+            'instructions' => $def['instructions'] ?? null,
+            'ask_ease' => (bool) ($def['ask_ease'] ?? false),
+            'ask_notes' => (bool) ($def['ask_notes'] ?? false),
+            'ask_file' => (bool) ($def['ask_file'] ?? false),
+            'required' => (bool) ($def['required'] ?? false),
+            'custom_questions' => $def['custom_questions'] ?? [],
+        ];
+    }
+
+    private function completedCount(ProjectAccess $access): int
+    {
+        return TaskResponse::query()
+            ->where('project_access_id', $access->id)
+            ->whereNotNull('submitted_at')
+            ->count();
     }
 
     /** The card as the tester sees it: the saved copy once the task has started, else the live card. */

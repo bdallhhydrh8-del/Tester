@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
  * Must run AFTER create_responses_table. Rename the file if its timestamp is not later.
  */
 return new class extends Migration
-{
+{   
     public function up(): void
     {
         Schema::table('responses', function (Blueprint $table) {
@@ -16,7 +16,7 @@ return new class extends Migration
             // {"q1": "text", "q2": "chosen option", "q3": ["option", "option"]}
             $table->json('custom_answers')->nullable()->after('notes');
         });
-    }
+    }                                                                                   
 
     public function down(): void
     {
@@ -24,4 +24,4 @@ return new class extends Migration
             $table->dropColumn('custom_answers');
         });
     }
-};
+};    

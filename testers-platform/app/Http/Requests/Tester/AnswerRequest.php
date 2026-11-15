@@ -4,6 +4,7 @@ namespace App\Http\Requests\Tester;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+
 /**
  * POST /tester/projects/{project}/cards/{card}/donetask
  *
@@ -11,7 +12,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * A card that does not ask for success takes no body at all.
  * The same request is sent again if the tester changes the answer before submitting.
  */
-class DoneTaskRequest extends FormRequest
+class AnswerRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,12 +20,9 @@ class DoneTaskRequest extends FormRequest
     }
 
     public function rules(): array
-    {
-        $card = $this->attributes->get('card'); // set by tester.project:expect-card
+    {  
+        return ['success' => ['required', 'boolean']];
 
-        return [
-            'success' => $card->ask_success ? ['required', 'boolean'] : ['prohibited'],
-        ];
     }
 
     public function messages(): array

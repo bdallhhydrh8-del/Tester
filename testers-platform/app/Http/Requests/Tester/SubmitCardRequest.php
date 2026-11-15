@@ -2,10 +2,12 @@
 
 namespace App\Http\Requests\Tester;
 
-use App\Models\Card;
+use App\Models\TaskResponse;
 use App\Services\CardFlowService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Contracts\Validation\Validator;
+
 
 /**
  * POST /tester/projects/{project}/cards/{card}/submit
@@ -21,75 +23,65 @@ use Illuminate\Validation\Rule;
  */
 class SubmitCardRequest extends FormRequest
 {
-    public function authorize(): bool
+    private ?array $definition = null;
+
+    public function authorize(): bool { return true; }
+
+    /** The card as the tester saw it: the saved copy once the task has started. */
+    private function definition(): array
     {
-        return true; // access is checked by the tester.project:expect-card middleware
+        return $this->definition ??= app(CardFlowService::class)->definition(
+            $this->attributes->get('card'),
+            TaskResponse::query()
+                ->where('project_access_id', $this->attributes->get('project_access')->id)
+                ->where('card_id', $this->attributes->get('card')->id)
+                ->first()
+        );
     }
 
     public function rules(): array
     {
-        /** @var Card $card */
-        $card = $this->attributes->get('card'); // set by tester.project:expect-card
+        $def = $this->definition();
 
         return [
-            'difficulty' => $card->ask_difficulty
-                ? ['required', 'integer', 'between:1,5']
-                : ['prohibited'],
-
-            'notes' => $card->ask_notes
-                ? ['nullable', 'string', 'max:2000']
-                : ['prohibited'],
-
-            // Only the shape is checked here. Ownership and "not already attached" are
-            // checked by FileAttachmentService, so ids cannot be probed with exists:files,id.
-            'file_ids' => $card->ask_file ? ['nullable', 'array', 'max:5'] : ['prohibited'],
+            'ease' => ! empty($def['ask_ease']) ? ['required', 'integer', 'between:1,5'] : ['prohibited'],
+            'notes' => ! empty($def['ask_notes']) ? ['nullable', 'string', 'max:250'] : ['prohibited'],
+            'file_ids' => ! empty($def['ask_file']) ? ['nullable', 'array', 'max:5'] : ['prohibited'],
             'file_ids.*' => ['integer', 'distinct'],
-        ] + $this->customAnswerRules($card);
+        ] + $this->customAnswerRules($def['custom_questions'] ?? []);
     }
 
-    public function messages(): array
+    /** An answer to a question the card does not have is an error, not silently dropped. */
+    public function withValidator(Validator $validator): void
     {
-        return [
-            'difficulty.required' => __('tester.difficulty_invalid'),
-            'difficulty.integer' => __('tester.difficulty_invalid'),
-            'difficulty.between' => __('tester.difficulty_invalid'),
-            'notes.max' => __('tester.notes_too_long'),
-            'custom_answers.*.required' => __('tester.answer_required'),
-            'custom_answers.*.min' => __('tester.answer_required'),
-            'custom_answers.*.in' => __('tester.answer_not_allowed'),
-        ];
+        $validator->after(function (Validator $v) {
+            $known = array_column($this->definition()['custom_questions'] ?? [], 'id');
+
+            foreach (array_keys((array) $this->input('custom_answers', [])) as $id) {
+                if (! in_array($id, $known, true)) {
+                    $v->errors()->add('custom_answers.'.$id, __('tester.answer_not_allowed'));
+                }
+            }
+        });
     }
 
-    /**
-     * One rule per custom question, keyed by the question id.
-     * There is deliberately no rule on "custom_answers" itself: validated() then returns only
-     * the answers to questions this card really has, and drops any other key.
-     */
-    private function customAnswerRules(Card $card): array
+    private function customAnswerRules(array $questions): array
     {
         $rules = [];
 
-        foreach (app(CardFlowService::class)->customQuestions($card) as $question) {
+        foreach ($questions as $question) {
             $id = $question['id'] ?? null;
-
-            if (! is_string($id) || $id === '') {
-                continue;
-            }
+            if (! is_string($id) || $id === '') continue;
 
             $key = 'custom_answers.'.$id;
             $required = ! empty($question['required']);
             $options = array_values($question['options'] ?? []);
 
             switch ($question['type'] ?? null) {
-                case 'text':
-                    $rules[$key] = [$required ? 'required' : 'nullable', 'string', 'max:2000'];
-                    break;
-
-                case 'radio': // one option
+                case 'radio':   // one option
                     $rules[$key] = [$required ? 'required' : 'nullable', 'string', Rule::in($options)];
                     break;
-
-                case 'choice': // several options
+                case 'checkbox': // several options; a required one needs at least one
                     $rules[$key] = $required ? ['required', 'array', 'min:1'] : ['nullable', 'array'];
                     $rules[$key.'.*'] = ['string', 'distinct', Rule::in($options)];
                     break;
@@ -97,5 +89,18 @@ class SubmitCardRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'ease.required' => __('tester.ease_invalid'),
+            'ease.integer' => __('tester.ease_invalid'),
+            'ease.between' => __('tester.ease_invalid'),
+            'notes.max' => __('tester.text_too_long'),
+            'custom_answers.*.required' => __('tester.answer_required'),
+            'custom_answers.*.min' => __('tester.answer_required'),
+            'custom_answers.*.in' => __('tester.answer_not_allowed'),
+        ];
     }
 }

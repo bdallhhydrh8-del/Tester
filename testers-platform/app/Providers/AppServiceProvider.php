@@ -20,6 +20,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             \App\Contracts\UploadService::class,
             \App\Services\ImageUploadService::class
+
+        );
+        // This prevents failures when creating issues from failed tasks; screenshots are not attached yet.
+        $this->app->bind(
+            \App\Contracts\FailedTaskIssueCreator::class,
+            \App\Services\NullFailedTaskIssueCreator::class
         );
     }
 
