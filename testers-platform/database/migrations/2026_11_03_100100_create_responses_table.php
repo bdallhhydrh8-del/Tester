@@ -5,7 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /*
-  The duration is calculated by the server at ‘Done with task’” becomes “calculated by the server when the tester answers Yes or No.
+  One row per attempt per task. The duration is calculated by the server,
+  from the Start task press to the Yes or No answer.
  */
 return new class extends Migration
 {
@@ -22,14 +23,14 @@ return new class extends Migration
             // Editing the card later never changes it.
             $table->json('card_snapshot')->nullable();
 
-            // Server times only. The duration is calculated by the server at "Done with task".
-            $table->timestamp('task_started_at')->nullable();
+  // Server times only. The duration is calculated by the server, from the Start task press to the Yes or No answer.            $table->timestamp('task_started_at')->nullable();
             $table->timestamp('task_ended_at')->nullable();
             $table->unsignedInteger('duration_seconds')->nullable();
 
             // Answers. Empty until given.
             $table->boolean('success')->nullable();
-            $table->unsignedTinyInteger('difficulty')->nullable();   // 1 to 5
+            $table->unsignedTinyInteger('difficulty')->nullable();    // 1 to 5. Renamed to "ease" (5 is easiest) by 2026_11_10_085820.
+
             $table->text('notes')->nullable();
 
             // Empty means the card is still in progress.

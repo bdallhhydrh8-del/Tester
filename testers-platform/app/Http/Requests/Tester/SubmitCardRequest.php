@@ -8,17 +8,18 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Contracts\Validation\Validator;
 
-
 /**
  * POST /tester/projects/{project}/cards/{card}/submit
  *
- * The rules come from the card: which questions it enables, and its custom questions.
- * Success is not here: it was saved when the tester pressed Done with task.
+ * The feedback page. Only valid after the tester answered Yes.
+ * A task answered No uses the problem page instead (ProblemRequest).
+ * The rules come from the card as the tester saw it: which questions it enables,
+ * and its custom questions. Success is not here: it was saved by the answer call.
  *
- * Which fields are required (a decision to confirm with the company):
- *   difficulty  required when the card asks for it
- *   notes       optional
- *   file_ids    optional
+ * Which fields are required:
+ *   ease        required when the card asks for it (1 to 5, 5 is easiest)
+ *   notes       optional, at most 250 characters
+ *   file_ids    optional, at most 5 images
  *   custom questions follow their own "required" flag
  */
 class SubmitCardRequest extends FormRequest

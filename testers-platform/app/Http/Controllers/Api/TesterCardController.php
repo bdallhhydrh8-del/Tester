@@ -24,7 +24,10 @@ use Illuminate\Support\Facades\DB;
  * already checked the project is live, the tester has access, and (for the card routes)
  * that the card is the expected one. The results are read from the request attributes.
  *
- * Per card:  starttask -> donetask -> submit.   Timing uses server time only.
+ * Per task:  starttask -> answer (Yes or No)
+ *              Yes -> submit  (feedback page)
+ *              No  -> problem (problem page: continue to the next task, or end the test)
+ * Timing uses server time only: the timer runs from starttask until answer.
  */
 class TesterCardController extends Controller
 {

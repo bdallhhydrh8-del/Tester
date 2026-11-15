@@ -5,6 +5,16 @@ namespace App\Http\Requests\Tester;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * POST /tester/projects/{project}/cards/{card}/problem
+ *
+ * The problem page, shown after the tester answered No.
+ *   reason       one of REASONS (the fixed list)
+ *   description  required when the reason is "other", at most 250 characters
+ *   file_ids     optional screenshots, at most 5
+ *   action       continue (the next task opens) or end (the test ends early)
+ */
+
 class ProblemRequest extends FormRequest
 {
     public const REASONS = ['slow_connection', 'did_not_understand', 'unclear_interface', 'other'];

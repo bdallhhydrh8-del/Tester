@@ -16,7 +16,7 @@ class CardFlowService
     public const STEP_FEEDBACK = 'feedback';  // answered Yes: ease, custom questions, notes, file
     public const STEP_PROBLEM = 'problem';    // answered No: reason, description, images
     public const STEP_FINISHED = 'finished';  // every task submitted: thank-you
-    public const STEP_ENDED = 'ended';        // the tester ended the test early: thank-you  // Done pressed, timer stopped
+    public const STEP_ENDED = 'ended';          // the tester ended the test early: thank-you
 
     /**
      * The card the tester must do next: the first card, in fixed order, without a submitted answer.
@@ -81,11 +81,12 @@ class CardFlowService
         return $response->success === true ? self::STEP_FEEDBACK : self::STEP_PROBLEM;
     }
 
-    /**
-     * Everything the card screen needs. Returned by current-card (also used to resume),
-     * starttask, donetask and submit, so the client always gets the same shape.
+      /**
+     * Everything the task screen needs. Returned by current-card (also used to resume),
+     * starttask, answer, submit and problem, so the client always gets the same shape.
      * 'card' is an array from definition(): the saved snapshot once the task started,
-     * otherwise the live card.     */
+     * otherwise the live card.
+     */
     public function state(ProjectAccess $access): array
     {
         $ids = Card::query()

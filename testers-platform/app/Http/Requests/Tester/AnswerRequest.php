@@ -6,11 +6,12 @@ use Illuminate\Foundation\Http\FormRequest;
 
 
 /**
- * POST /tester/projects/{project}/cards/{card}/donetask
+ * POST /tester/projects/{project}/cards/{card}/answer
  *
- * The tester answers "Did you complete the task successfully?" when pressing Done.
- * A card that does not ask for success takes no body at all.
- * The same request is sent again if the tester changes the answer before submitting.
+ * The tester answers "Did you complete the task successfully?" with Yes or No.
+ * The question is asked on every task, so `success` is always required.
+ * The answer stops the timer and is final: sending it again gives 409 already_answered.
+ * Yes leads to the feedback page (submit). No leads to the problem page (problem).
  */
 class AnswerRequest extends FormRequest
 {
