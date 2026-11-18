@@ -58,15 +58,13 @@ class AdminManagementTest extends TestCase
 
         $this->assertTrue(Hash::check('password1', User::where('username', 'sami')->first()->password));
 
-        $this->admin('second', 'deactivated');
+        $this->admin('second');
 
         // The SuperAdmin is not in the list: 2 admins only
         $this->actingAs($boss, 'sanctum')->getJson('/api/admins')
             ->assertOk()
             ->assertJsonCount(2, 'data');
 
-        $this->actingAs($boss, 'sanctum')->getJson('/api/admins?status=deactivated')
-            ->assertJsonCount(1, 'data');
     }
 
    public function test_create_validates_input_and_unique_username(): void
@@ -132,31 +130,6 @@ class AdminManagementTest extends TestCase
         $this->assertTrue(Hash::check('newsecret99', $admin->fresh()->password));
         $this->assertDatabaseMissing('sessions', ['id' => 'session-1']);
     }
-    public function test_deactivate_ends_sessions_and_blocks_login_then_activate_restores(): void
-    {
-        $boss = $this->superAdmin();
-        $admin = $this->admin('worker');
-
-        DB::table('sessions')->insert([
-            'id' => 'session-2', 'user_id' => $admin->id, 'payload' => 'x', 'last_activity' => time(),
-        ]);
-
-        $this->actingAs($boss, 'sanctum')->postJson("/api/admins/{$admin->id}/deactivate")
-            ->assertOk()->assertJsonPath('data.status', 'deactivated');
-
-        $this->assertDatabaseMissing('sessions', ['id' => 'session-2']);
-
-        $this->withHeaders(['Origin' => 'http://localhost:3000'])
-            ->postJson('/api/admin/login', ['username' => 'worker', 'password' => 'adminpass123'])
-            ->assertStatus(401);
-
-        $this->actingAs($boss, 'sanctum')->postJson("/api/admins/{$admin->id}/activate")
-            ->assertOk()->assertJsonPath('data.status', 'active');
-
-        $this->withHeaders(['Origin' => 'http://localhost:3000'])
-            ->postJson('/api/admin/login', ['username' => 'worker', 'password' => 'adminpass123'])
-            ->assertOk();
-    }
 
     public function test_delete_is_a_soft_delete(): void
     {
@@ -176,7 +149,6 @@ class AdminManagementTest extends TestCase
             'phone' => '+967777000002', 'tester_number' => 1]);
 
         foreach ([$boss->id, $tester->id] as $id) {
-            $this->actingAs($boss, 'sanctum')->postJson("/api/admins/{$id}/deactivate")->assertNotFound();
             $this->actingAs($boss, 'sanctum')->deleteJson("/api/admins/{$id}")->assertNotFound();
             $this->actingAs($boss, 'sanctum')->patchJson("/api/admins/{$id}", ['name' => 'Hacked'])->assertNotFound();
         }

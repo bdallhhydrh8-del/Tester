@@ -13,13 +13,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->statefulApi();
+
         $middleware->alias([
-            'role' => 'App\\Http\\Middleware\\EnsureRole',
+            'role' => 'App\\Http\\Middleware\\EnsureRole', 
+            'tester.project' => \App\Http\Middleware\EnsureTesterProjectAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->shouldRenderJsonWhen(
-            fn ($request, $e) => $request->is('api/*') || $request->expectsJson()
+            fn($request, $e) => $request->is('api/*') || $request->expectsJson()
         );
     })
     ->create();

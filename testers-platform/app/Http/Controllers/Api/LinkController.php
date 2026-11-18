@@ -94,7 +94,7 @@ class LinkController extends Controller
         ], 201);
     }
 
-    /** POST /links/{token}/login: phone only */
+       /** POST /links/{token}/login: phone only */
     public function login(Request $request, string $token, GrantService $grants, TesterLogin $login)
     {
         $invitation = $this->usableInvitation($token);
@@ -111,7 +111,7 @@ class LinkController extends Controller
         $login->startSession($request, $tester);
 
         return response()->json([
-            'data' => (new TesterResource($tester))->resolve(),
+            'data' => ['user' => $tester, 'next' => $this->next($invitation)],
             'message' => 'Logged in.',
         ]);
     }

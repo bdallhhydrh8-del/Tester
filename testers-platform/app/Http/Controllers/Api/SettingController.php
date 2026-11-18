@@ -26,8 +26,7 @@ class SettingController extends Controller
             ->map(fn (array $card) => [
                 'title' => $card['title'],
                 'instructions' => $card['instructions'],
-                'ask_success' => $card['ask_success'] ?? true,
-                'ask_difficulty' => $card['ask_difficulty'] ?? true,
+                'ask_ease' => $card['ask_ease'] ?? true,
                 'ask_notes' => $card['ask_notes'] ?? true,
                 'ask_file' => $card['ask_file'] ?? false,
                 'required' => $card['required'] ?? true,

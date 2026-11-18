@@ -31,8 +31,7 @@ class Setting extends Model
                 [
                     'title' => 'تسجيل الدخول',
                     'instructions' => 'افتح التطبيق أو الموقع وسجّل الدخول',
-                    'ask_success' => true,
-                    'ask_difficulty' => true,
+                    'ask_ease' => true,
                     'ask_notes' => true,
                     'ask_file' => false,
                     'required' => true,
@@ -41,14 +40,14 @@ class Setting extends Model
                 [
                     'title' => 'إضافة منتج إلى السلة',
                     'instructions' => 'ابحث عن المنتج الذي تريده وأضفه إلى السلة',
-                    'ask_success' => true,
-                    'ask_difficulty' => true,
+                    'ask_ease' => true,
                     'ask_notes' => true,
                     'ask_file' => true,
                     'required' => true,
                     'custom_questions' => null,
                 ],
             ],
+
         ];
     }
 }

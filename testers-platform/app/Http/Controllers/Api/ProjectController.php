@@ -53,8 +53,7 @@ class ProjectController extends Controller
                 $project->cards()->create([
                     ...Arr::only($card, [
                         'instructions',
-                        'ask_success',
-                        'ask_difficulty',
+                        'ask_ease',
                         'ask_notes',
                         'ask_file',
                         'required',

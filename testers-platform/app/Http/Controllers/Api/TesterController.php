@@ -34,7 +34,7 @@ class TesterController extends Controller
         return response()->json($testers);
     }
 
-    public function show(int $id)
+       public function show(int $id)
     {
         $tester = $this->findTester($id);
 
@@ -48,7 +48,7 @@ class TesterController extends Controller
         $accesses = Schema::hasTable('project_accesses')
             ? DB::table('project_accesses')
                 ->where('tester_id', $tester->id)
-                ->select('project_id', 'status', 'started_at', 'finished_at')
+                ->select('id', 'project_id', 'invitation_id', 'status', 'started_at', 'finished_at', 'last_opened_at')
                 ->get()
             : [];
 
@@ -63,6 +63,7 @@ class TesterController extends Controller
             'accesses' => $accesses,
         ]]);
     }
+    
 
     public function update(Request $request, int $id)
     {
