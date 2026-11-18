@@ -27,7 +27,7 @@ class ProjectAccess extends Model
         'status',
         'started_at',
         'finished_at',
-        'entered_at',
+        'last_opened_at', 
         'browser',
         'os',
         'device_type',
@@ -36,7 +36,7 @@ class ProjectAccess extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
-        'entered_at' => 'datetime',
+        'last_opened_at' => 'datetime',
     ];
 
     public function tester(): BelongsTo
@@ -74,8 +74,8 @@ class ProjectAccess extends Model
         return static::query()
             ->where('tester_id', $testerId)
             ->where('project_id', $projectId)
-            ->orderByRaw('entered_at IS NULL')
-            ->orderByDesc('entered_at')
+            ->orderByRaw('last_opened_at IS NULL')
+            ->orderByDesc('last_opened_at')
             ->orderByDesc('id')
             ->first();
     }
@@ -84,7 +84,7 @@ class ProjectAccess extends Model
     public static function pickCurrent(\Illuminate\Support\Collection $accesses): \Illuminate\Support\Collection
     {
         return $accesses->groupBy('project_id')
-            ->map(fn($group) => $group->sortByDesc(fn($a) => [$a->entered_at?->timestamp ?? 0, $a->id])->first())
+            ->map(fn($group) => $group->sortByDesc(fn($a) => [$a->last_opened_at?->timestamp ?? 0, $a->id])->first())
             ->values();
     }
 }

@@ -20,7 +20,7 @@ class ProjectAccessFactory extends Factory
             'tester_id' => User::factory()->state(['role' => 'tester']),
             'project_id' => Project::factory(), // needs a ProjectFactory from Dev 2
             'invitation_id' => \App\Models\Invitation::factory(),   // Dev 1's factory
-            'entered_at' => now(),
+            'last_opened_at' => now(),
             'status' => ProjectAccess::NOT_STARTED,
         ];
     }

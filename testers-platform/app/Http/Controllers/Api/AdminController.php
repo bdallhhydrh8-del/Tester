@@ -18,12 +18,11 @@ class AdminController extends Controller
         $search = trim((string) $request->query('search', ''));
 
         $admins = User::where('role', Role::Admin->value)
-            ->select(['id', 'name', 'username', 'status', 'last_login_at', 'created_at'])
+            ->select(['id', 'name', 'username', 'last_login_at', 'created_at'])
             ->when($search !== '', fn ($query) => $query->where(
                 fn ($q) => $q->where('name', 'like', "%{$search}%")
                     ->orWhere('username', 'like', "%{$search}%")
             ))
-            ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
             ->orderBy('name')
             ->paginate($this->perPage($request));
 
@@ -80,25 +79,6 @@ class AdminController extends Controller
             ->additional(['message' => 'Admin updated.']);
     }
 
-    public function deactivate(int $id)
-    {
-        $admin = $this->findAdmin($id);
-        $admin->update(['status' => 'deactivated']);
-        $this->endSessions($admin);
-
-        return (new AdminResource($admin->fresh()))
-            ->additional(['message' => 'Admin deactivated.']);
-    }
-
-    public function activate(int $id)
-    {
-        $admin = $this->findAdmin($id);
-        $admin->update(['status' => 'active']);
-
-        return (new AdminResource($admin->fresh()))
-            ->additional(['message' => 'Admin activated.']);
-    }
-
     public function destroy(int $id)
     {
         $admin = $this->findAdmin($id);
@@ -116,7 +96,7 @@ class AdminController extends Controller
 
     /**
      * Only users with the plain admin role. The SuperAdmin is never found here,
-     * so it cannot be edited, deactivated or deleted from the interface.
+     * so it cannot be edited or deleted from the interface.
      */
     private function findAdmin(int $id): User
     {

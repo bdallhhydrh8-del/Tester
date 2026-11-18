@@ -144,7 +144,5 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
     Route::post('/admins', [AdminController::class, 'store']);
     Route::get('/admins/{id}', [AdminController::class, 'show'])->whereNumber('id');
     Route::patch('/admins/{id}', [AdminController::class, 'update'])->whereNumber('id');
-    Route::post('/admins/{id}/deactivate', [AdminController::class, 'deactivate'])->whereNumber('id');
-    Route::post('/admins/{id}/activate', [AdminController::class, 'activate'])->whereNumber('id');
     Route::delete('/admins/{id}', [AdminController::class, 'destroy'])->whereNumber('id');
 });

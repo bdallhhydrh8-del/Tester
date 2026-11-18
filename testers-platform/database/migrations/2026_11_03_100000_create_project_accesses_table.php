@@ -21,7 +21,9 @@ return new class extends Migration
             $table->timestamp('started_at')->nullable();    // first time the tester opened the project
             $table->timestamp('finished_at')->nullable();   // last card submitted
             $table->timestamp('entered_at')->nullable();
-
+            // Set every time the tester registers or logs in through the link. The attempt with the
+            // latest value is the current one (FR-I10). NULL = granted later (FR-I7), never opened.
+            $table->timestamp('last_opened_at')->nullable();
             // Filled once, when the tester first opens the project.
             $table->string('browser')->nullable();
             $table->string('os')->nullable();

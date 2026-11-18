@@ -23,7 +23,8 @@ return new class extends Migration
             // Editing the card later never changes it.
             $table->json('card_snapshot')->nullable();
 
-  // Server times only. The duration is calculated by the server, from the Start task press to the Yes or No answer.            $table->timestamp('task_started_at')->nullable();
+            // Server times only. The duration is calculated by the server, from the Start task press to the Yes or No answer.
+            $table->timestamp('task_started_at')->nullable();
             $table->timestamp('task_ended_at')->nullable();
             $table->unsignedInteger('duration_seconds')->nullable();
 
